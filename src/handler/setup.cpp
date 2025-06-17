@@ -1,14 +1,34 @@
 #include "setup.h"
 #include "../../config.h"
 #include "../../pin_config.h"
-#include "../../src/motors/MotorController.h"
 #include <Wire.h>
+
+// Include GPS
+#ifdef ENABLE_GPS
+#include "../../src/sensors/GPS.h"
+extern GPSModule gps;
+#endif
+
+// Include Battery Monitor
+#ifdef ENABLE_BATTERY_MONITOR
+#include "../../src/sensors/BatteryMonitor.h"
+#endif
 
 unsigned long lastSensorUpdate = 0;
 unsigned long lastNavigationUpdate = 0;
 unsigned long lastSafetyCheck = 0;
 
-extern MotorController motorController;  // Dichiarazione della variabile esterna
+// Include IMU
+#ifdef ENABLE_IMU
+#include <MPU6050.h>
+extern MPU6050 imu;
+#endif
+
+// Include Motor Controller
+#ifdef ENABLE_DRIVE_MOTORS
+#include "../../src/motors/MotorController.h"
+extern MotorController motorController;
+#endif
 
 MowerState currentState = IDLE;
 
@@ -22,10 +42,21 @@ void my_setup() {
     #endif
 
     Wire.begin();
-    
+
     // Initialize components
     #ifdef ENABLE_BATTERY_MONITOR
-        batteryMonitor.begin();
+    // Inizializza e configura l'INA226
+//    if (!batteryMonitor.begin()) {
+//        SERIAL_DEBUG.println("ERROR: Failed to initialize INA226!");
+//        while(1); // Blocca se non riesce a inizializzare
+//    }
+    
+    // Configura il sensore
+//    batteryMonitor.setBusVoltageRange(INA226_WE::BusVoltageRange::BVOLTAGERANGE_32V);
+//    batteryMonitor.setPGA(INA226_WE::PGA::PGA_8_320MV);
+//    batteryMonitor.setBusADCResolution(INA226_WE::BusADCResolution::ADCRESOLUTION_12BIT);
+//    batteryMonitor.setShuntADCResolution(INA226_WE::ShuntADCResolution::ADCRESOLUTION_12BIT);
+//    batteryMonitor.setMode(INA226_WE::Mode::MODE_SANDBVOLT_CONTINUOUS);
     #endif
 
     #ifdef ENABLE_PERIMETER
@@ -33,7 +64,17 @@ void my_setup() {
     #endif
 
     #ifdef ENABLE_IMU
-//        imu.begin();
+        imu.initialize();
+    #endif
+    
+    #ifdef ENABLE_GPS
+        gps.begin();
+    #endif
+
+    #ifdef ENABLE_ODOMETRY
+    if (!sensorFusion.initOdometry(WHEEL_DIAMETER, TICKS_PER_REVOLUTION)) {
+        // Gestione errore
+    }
     #endif
 
     #ifdef ENABLE_SCHEDULE
@@ -70,10 +111,6 @@ void my_setup() {
 
     #ifdef ENABLE_RAIN_SENSOR
 //        rainSensor.begin();
-    #endif
-
-    #ifdef ENABLE_GPS
-//        gpsSensor.begin();
     #endif
 
     #ifdef ENABLE_BUZZER

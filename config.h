@@ -37,10 +37,11 @@
 // ========================
 
 // --- SENSORI ---
-//#define ENABLE_IMU              // IMU per orientamento
+#define ENABLE_IMU              // IMU per orientamento
+#define MPU6050_ADDRESS 0x68
 #define ENABLE_RTC              // RTC per orologio
-//#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
-//#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
+#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
+#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
 #define SERIAL_GPS_BAUD 115200
 //#define ENABLE_PERIMETER        // Sensore filo perimetrale
 #define ENABLE_ULTRASONIC         // Sensore ultrasonico per rilevamento ostacoli

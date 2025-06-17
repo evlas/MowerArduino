@@ -35,13 +35,16 @@ UltrasonicSensors ultrasonicSensors;
 #ifdef ENABLE_BUMP_SENSORS
 #include "src/sensors/BumpSensors.h"
 BumpSensors bumpSensors;
-#endif
+#endif 
 
 #ifdef ENABLE_IMU
-// IMU support
 #include <MPU6050.h>
-#include "src/sensors/IMU.h"
-IMU imu;
+MPU6050 imu;
+#endif
+
+#ifdef ENABLE_GPS
+#include "src/sensors/GPS.h"
+GPSModule gps;
 #endif
 
 #ifdef ENABLE_PERIMETER
@@ -65,13 +68,7 @@ RainSensor rainSensor;
 #ifdef ENABLE_BATTERY_MONITOR
 #include <INA226_WE.h>
 #include "src/sensors/BatteryMonitor.h"
-BatteryMonitor batteryMonitor;
-#endif
-
-#ifdef ENABLE_GPS
-#include <TinyGPS++.h>
-#include "src/sensors/GpsSensor.h"
-GpsSensor gpsSensor;
+INA226_WE batteryMonitor = INA226_WE(BATTERY_MONITOR_ADDRESS);
 #endif
 
 // MOTORS
