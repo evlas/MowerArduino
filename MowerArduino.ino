@@ -38,6 +38,7 @@ BumpSensors bumpSensors;
 #endif
 
 #ifdef ENABLE_IMU
+// IMU support
 #include <MPU6050.h>
 #include "src/sensors/IMU.h"
 IMU imu;
@@ -48,6 +49,12 @@ IMU imu;
 #include "src/functions/PerimeterManager.h"
 PerimeterSensors perimeterSensors;
 PerimeterManager perimeterManager(&motorController, &buzzer, &lcdManager);
+#endif
+
+// RTC
+#ifdef ENABLE_RTC
+#include <DS1302.h>
+DS1302 rtc(RTC_IO_PIN, RTC_SCLK_PIN, RTC_RST_PIN);
 #endif
 
 #ifdef ENABLE_RAIN_SENSOR
@@ -94,8 +101,8 @@ LCDManager lcdManager;
 #endif
 
 #ifdef ENABLE_RELAY
-#include "src/actuators/RelayController.h"
-RelayController relayController;
+#include "src/actuators/Relay.h"
+Relay relay;
 #endif
 
 // COMMUNICATIONS
@@ -128,11 +135,6 @@ ChargingSystem chargingSystem;
 #ifdef ENABLE_SCHEDULE
 #include "src/functions/Scheduler.h"
 Scheduler scheduler;
-#endif
-
-// RTC
-#ifdef ENABLE_RTC
-#include <DS1302.h>
 #endif
 
 void setup() {

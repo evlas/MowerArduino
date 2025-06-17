@@ -2,6 +2,7 @@
 #include "../../config.h"
 #include "../../pin_config.h"
 #include "../../src/motors/MotorController.h"
+#include <Wire.h>
 
 unsigned long lastSensorUpdate = 0;
 unsigned long lastNavigationUpdate = 0;
@@ -20,6 +21,8 @@ void my_setup() {
         }
     #endif
 
+    Wire.begin();
+    
     // Initialize components
     #ifdef ENABLE_BATTERY_MONITOR
         batteryMonitor.begin();

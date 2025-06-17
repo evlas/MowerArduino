@@ -1,10 +1,20 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
+#include "Arduino.h"
+#include "../../pin_config.h"
+
 class Buzzer {
-public:
+  public:
     Buzzer();
-    // Add methods here
+    void begin();
+    void beep(unsigned int frequency, unsigned long duration);
+    void stop();
+    void alarm();
+    void success();
+    void error();
+  private:
+    bool isBeeping;
 };
 
-#endif
+#endif // BUZZER_H

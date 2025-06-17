@@ -37,29 +37,29 @@
 // ========================
 
 // --- SENSORI ---
-//#define ENABLE_IMU            // IMU per orientamento
-//#define ENABLE_RTC  // RTC per orologio
+//#define ENABLE_IMU              // IMU per orientamento
+#define ENABLE_RTC              // RTC per orologio
 //#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
-//#define ENABLE_GPS            // Sensore GPS (commenta se non presente)
+//#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
 #define SERIAL_GPS_BAUD 115200
-//#define ENABLE_PERIMETER      // Sensore filo perimetrale
-//#define ENABLE_ULTRASONIC       // Sensore ultrasonico per rilevamento ostacoli
-//#define ENABLE_BUMP_SENSORS     // Sensori di urto meccanici
-//#define ENABLE_RAIN_SENSOR     // Sensore pioggia
+//#define ENABLE_PERIMETER        // Sensore filo perimetrale
+#define ENABLE_ULTRASONIC         // Sensore ultrasonico per rilevamento ostacoli
+#define ENABLE_BUMP_SENSORS       // Sensori di urto meccanici
+//#define ENABLE_RAIN_SENSOR      // Sensore pioggia
 
 // --- MOTORI ---
 #define ENABLE_DRIVE_MOTORS
 #define DRIVE_MOTOR_TIPO1  // Motori Brushless 5 fili
-//#define MOTOR_TIPO2      // Motori Brushed
+//#define DRIVE_MOTOR_TIPO2      // Motori Brushed
 
 #define ENABLE_BLADE_MOTORS
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
 //#define BLADE_MOTOR_TIPO2  // Motori Brushed 
 
 // --- ATTUATORI ---
-//#define ENABLE_BUZZER   // Buzzer per segnalazioni acustiche
+#define ENABLE_BUZZER   // Buzzer per segnalazioni acustiche
 //#define ENABLE_DISPLAY  // Display LCD/OLED (commenta se non presente)
-//#define ENABLE_RELAY    // Controller relay aggiuntivi
+#define ENABLE_RELAY    // Controller relay aggiuntivi
 
 // --- FUNZIONALITÀ ---
 //#define ENABLE_WIFI        // Comunicazione WiFi (commenta se non presente)
