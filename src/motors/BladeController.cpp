@@ -3,6 +3,8 @@
 #include "MotorTipo2.h"
 #include "Motor.h"
 
+BladeController bladeController;
+
 BladeController::BladeController() {
     _Blade = nullptr;
 }

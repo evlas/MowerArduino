@@ -37,21 +37,19 @@ UltrasonicSensors ultrasonicSensors;
 BumpSensors bumpSensors;
 #endif 
 
+#ifdef ENABLE_PERIMETER
+#include "src/sensors/PerimeterSensors.h"
+PerimeterSensors perimeterSensors;
+#endif  
+
 #ifdef ENABLE_IMU
-#include <MPU6050.h>
-MPU6050 imu;
+#include "src/sensors/IMU.h"
+IMUModule imu;
 #endif
 
 #ifdef ENABLE_GPS
 #include "src/sensors/GPS.h"
 GPSModule gps;
-#endif
-
-#ifdef ENABLE_PERIMETER
-#include "src/sensors/PerimeterSensors.h"
-#include "src/functions/PerimeterManager.h"
-PerimeterSensors perimeterSensors;
-PerimeterManager perimeterManager(&motorController, &buzzer, &lcdManager);
 #endif
 
 // RTC
@@ -115,13 +113,22 @@ WiFiController wifi(&SERIAL_WIFI, &commandHandler);
 // FUNCTIONS
 // Include moduli funzionalità (solo se abilitati)
 #ifdef ENABLE_NAVIGATION
+#include "src/position/PositionManager.h"
 #include "src/functions/Navigation.h"
-Navigation navigationSystem(&motorController, &bladeController, &buzzer, &lcdManager);
+PositionManager positionManager;
+NavigationMode navigationMode;
+
+// Initialize Navigation with Perimeter if enabled
+#ifdef ENABLE_PERIMETER
+Navigation navigation(&mowerManeuver, &ultrasonicSensors, &bumpSensors, &perimeterSensors, &positionManager);
+#else
+Navigation navigation(&mowerManeuver, &ultrasonicSensors, &bumpSensors, nullptr, &positionManager);
+#endif
 #endif
 
 #ifdef ENABLE_SAFETY
-#include "src/functions/SafetySystem.h"
-SafetySystem safetySystem;
+#include "src/safety/SafetyManager.h"
+SafetyManager safety;
 #endif
 
 #ifdef ENABLE_CHARGING

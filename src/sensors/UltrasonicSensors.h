@@ -34,4 +34,6 @@ private:
     static const float MAX_DISTANCE = 400.0f;  // Maximum measurable distance in cm
 };
 
+extern UltrasonicSensors ultrasonicSensors;
+
 #endif // ULTRASONIC_SENSORS_H

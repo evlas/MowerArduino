@@ -27,4 +27,6 @@ private:
     bool readBumpPin(int pin);
 };
 
+extern BumpSensors bumpSensors;
+
 #endif // BUMP_SENSORS_H

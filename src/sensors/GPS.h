@@ -71,4 +71,6 @@ class GPSModule {
         }
 };
 
+extern GPSModule gps;
+
 #endif // GPS_H

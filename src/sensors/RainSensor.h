@@ -7,4 +7,6 @@ public:
     // Add methods here
 };
 
+extern RainSensor rainSensor;
+
 #endif

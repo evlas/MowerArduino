@@ -16,4 +16,6 @@ class Relay {
     bool state;
 };
 
+extern Relay relay;
+
 #endif // RELAY_H

@@ -42,4 +42,6 @@ private:
     Motor* createBladeInstance();
 };
 
+extern BladeController bladeController;
+
 #endif // BLADE_CONTROLLER_H

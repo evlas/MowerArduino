@@ -51,7 +51,7 @@ void MotorTipo1::updateEncoderPosition() {
 }
 
 void MotorTipo1::setSpeed(int speed) {
-    _currentSpeed = constrain(speed, -255, 255);
+    _currentSpeed = constrain(speed, MIN_SPEED, MAX_SPEED);
     analogWrite(_pwmPin, abs(_currentSpeed));
 }
 

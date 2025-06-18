@@ -37,6 +37,7 @@
 // ========================
 
 // --- SENSORI ---
+#define ENABLE_ODOMETRY
 #define ENABLE_IMU              // IMU per orientamento
 #define MPU6050_ADDRESS 0x68
 #define ENABLE_RTC              // RTC per orologio
@@ -53,20 +54,22 @@
 #define DRIVE_MOTOR_TIPO1  // Motori Brushless 5 fili
 //#define DRIVE_MOTOR_TIPO2      // Motori Brushed
 
+
 #define ENABLE_BLADE_MOTORS
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
 //#define BLADE_MOTOR_TIPO2  // Motori Brushed 
+#define BLADE_WIDTH 0.44f    // 2 * 22cm = 44cm
 
 // --- ATTUATORI ---
 #define ENABLE_BUZZER   // Buzzer per segnalazioni acustiche
-//#define ENABLE_DISPLAY  // Display LCD/OLED (commenta se non presente)
+#define ENABLE_DISPLAY  // Display LCD/OLED (commenta se non presente)
 #define ENABLE_RELAY    // Controller relay aggiuntivi
 
 // --- FUNZIONALITÀ ---
 //#define ENABLE_WIFI        // Comunicazione WiFi (commenta se non presente)
 #define SERIAL_WIFI_BAUD 115200
-//#define ENABLE_NAVIGATION  // Sistema di navigazione avanzato
-//#define ENABLE_SAFETY      // Sistema di sicurezza
+#define ENABLE_NAVIGATION  // Sistema di navigazione avanzato
+#define ENABLE_SAFETY      // Sistema di sicurezza
 //#define ENABLE_CHARGING    // Sistema di ricarica automatica
 //#define ENABLE_SCHEDULE    // Scheduler programmazione orari
 
@@ -136,7 +139,9 @@
 #endif
 
 #ifdef ENABLE_BATTERY_MONITOR
-#define ADDR_INA226 0x40
+#define BATTERY_MONITOR_ADDRESS 0x40
+#define BATTERY_UPDATE_INTERVAL 1000  // Aggiornamento ogni 1 secondo
+
 
 #define BATTERY_SHUNT_RESISTOR 0.1  // 0.1 Ohm
 #define BATTERY_MAX_VOLTAGE 7*BATTERY_FULL_VOLTAGE   // V
@@ -161,6 +166,29 @@
 #define TURN_DURATION 1000        // ms per girata 90°
 #define BACKUP_DURATION 800       // ms per retromarcia
 #define PAUSE_AFTER_OBSTACLE 500  // ms pausa dopo ostacolo
+
+// --- PARAMETRI DI NAVIGAZIONE ---
+#define NAVIGATION_MODE_RANDOM      0
+#define NAVIGATION_MODE_PARALLEL    1
+#define NAVIGATION_MODE_SPIRAL      2
+
+// Parametri per la navigazione casuale
+#define RANDOM_TURN_MIN_ANGLE   10    // Minimo angolo di virata (10 gradi)
+#define RANDOM_TURN_MAX_ANGLE   170   // Massimo angolo di virata (170 gradi)
+#define RANDOM_MAX_DISTANCE     300   // Massima distanza in cm prima di virare
+
+// Parametri per la navigazione a linee parallele
+#define PARALLEL_LINE_SPACING   BLADE_WIDTH  // Distanza tra le linee = larghezza lame
+#define PARALLEL_TURN_ANGLE     90         // Angolo di virata per linee parallele
+
+// Parametri per la spirale
+#define SPIRAL_MAX_RINGS        8         // Numero massimo di anelli
+#define SPIRAL_RADIUS_STEP      30        // Incremento del raggio in cm
+#define SPIRAL_START_RADIUS     30        // Raggio iniziale in cm
+
+// Parametri di sicurezza
+#define MIN_DISTANCE_FROM_PERIMETER  30  // Minima distanza dal perimetro in cm
+#define MIN_DISTANCE_FROM_OBSTACLE   20  // Minima distanza dagli ostacoli in cm
 
 // ========================
 // CONFIGURAZIONI AVANZATE

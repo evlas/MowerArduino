@@ -17,4 +17,6 @@ class Buzzer {
     bool isBeeping;
 };
 
+extern Buzzer buzzer;
+
 #endif // BUZZER_H

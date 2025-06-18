@@ -5,7 +5,7 @@
 // Include GPS
 #ifdef ENABLE_GPS
 #include "../../src/sensors/GPS.h"
-extern GPSModule gps;
+//GPSModule gps;
 #endif
 
 // Include Battery Monitor

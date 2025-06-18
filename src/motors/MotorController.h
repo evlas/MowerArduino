@@ -5,10 +5,11 @@
 #include "Motor.h"
 #include "../../config.h"
 #include "../../pin_config.h"
+#include <math.h>
 
 class MotorController {
 public:
-    MotorController();
+    MotorController(float diameter = 6.0f, float base = 20.0f, float ticks = 1000.0f);
     ~MotorController();
     
     // Inizializzazione
@@ -24,6 +25,15 @@ public:
     void resetPositionLeft();
     void resetPositionRight();
     
+    // Parametri geometrici
+    float getWheelBase() const { return _wheelBase; }
+    void resetOdometry();
+    
+    // Gestione errori
+    bool hasLeftMotorError() const;
+    bool hasRightMotorError() const;
+    void clearErrors();
+    
     // Stato dei motori
     bool isLeftMotorRunning() const;
     bool isRightMotorRunning() const;
@@ -38,20 +48,58 @@ public:
     float getLeftMotorTemperature() const;
     float getRightMotorTemperature() const;
     
+    // Velocità dei motori
+    int getLeftMotorSpeed() const;
+    int getRightMotorSpeed() const;
+    
     // Gestione errori
     void clearLeftMotorFault();
     void clearRightMotorFault();
+    
+    // Odometria
+    void updateOdometry();
+    float getX() const;
+    float getY() const;
+    float getTheta() const;
+    float getLinearVelocity() const;
+    float getAngularVelocity() const;
 
 private:
     // Motori
     Motor* _leftMotor;
     Motor* _rightMotor;
     
+    // Stato di errore
+    bool _hasLeftMotorError;
+    bool _hasRightMotorError;
+    
+    // Parametri di odometria
+    float _wheelDiameter;      // Diametro delle ruote in cm
+    float _wheelBase;          // Distanza tra le ruote in cm
+    float _ticksPerRevolution; // Numero di tick per giro di ruota
+    
+    // Stato odometria
+    float _x;                  // Posizione X in cm
+    float _y;                  // Posizione Y in cm
+    float _theta;              // Orientamento in radianti
+    float _lastLeftPos;        // Ultima posizione sinistra
+    float _lastRightPos;       // Ultima posizione destra
+    unsigned long _lastUpdate; // Timestamp dell'ultimo aggiornamento
+    
     // Inizializzazione dei motori
     void initializeMotors();
     
     // Creazione dei motori in base alla configurazione
     Motor* createMotorInstance();
+    
+    // Inizializzazione dell'odometria
+    void initializeOdometry(float diameter, float base, float ticks);
+    
+    // Metodi privati
+    float calculateDistance(float ticks) const;
+    float calculateTheta(float leftDistance, float rightDistance) const;
 };
+
+extern MotorController motorController;
 
 #endif // MOTOR_CONTROLLER_H

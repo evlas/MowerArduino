@@ -97,6 +97,22 @@ void Maneuver::spiral(int radius, int speed) {
     stop();
 }
 
+void Maneuver::begin() {
+    // Resetta lo stato
+    moving = false;
+    turning = false;
+    
+    // Ferma i motori
+    stop();
+    
+    // Resetta la posizione
+    motorController->resetPositionLeft();
+    motorController->resetPositionRight();
+    
+    // Resetta l'odometria
+    motorController->resetOdometry();
+}
+
 // Status
 bool Maneuver::isMoving() {
     return moving;
@@ -119,4 +135,27 @@ void Maneuver::setSpeed(int leftSpeed, int rightSpeed) {
 void Maneuver::setDirection(bool leftForward, bool rightForward) {
     motorController->setLeftMotorDirection(leftForward);
     motorController->setRightMotorDirection(rightForward);
+}
+
+int Maneuver::getSpeed() const {
+    // Get average speed of both motors
+    int leftSpeed = motorController->getLeftMotorSpeed();
+    int rightSpeed = motorController->getRightMotorSpeed();
+    return (leftSpeed + rightSpeed) / 2;
+}
+
+int Maneuver::getLeftSpeed() const {
+    return motorController->getLeftMotorSpeed();
+}
+
+int Maneuver::getRightSpeed() const {
+    return motorController->getRightMotorSpeed();
+}
+
+float Maneuver::getLinearVelocity() const {
+    return motorController->getLinearVelocity();
+}
+
+float Maneuver::getAngularVelocity() const {
+    return motorController->getAngularVelocity();
 }
