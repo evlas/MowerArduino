@@ -18,8 +18,7 @@
 #include "../../src/sensors/BatteryMonitor.h"
 #endif
 
-unsigned long lastSensorUpdate = 0;
-unsigned long lastNavigationUpdate = 0;
+// Le variabili globali sono definite in loop.cpp
 unsigned long lastSafetyCheck = 0;
 
 // Include Motor Controller
@@ -89,96 +88,86 @@ unsigned long lastSafetyCheck = 0;
 #include "../../src/actuators/Relay.h"
 #endif
 
-MowerState currentState = IDLE;
+// La macchina a stati è ora gestita dalla classe StateMachine
+// mowerStateMachine è definita in StateMachine.cpp
 
 void my_setup() {
-    // Serial initialization
+    // Inizializza la comunicazione seriale
     #ifdef SERIAL_DEBUG
         SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
         while (!SERIAL_DEBUG) {
-            ; // Wait for serial port to connect
+            ; // Attendi che la porta seriale sia connessa
         }
+        SERIAL_DEBUG.println("Inizializzazione Robot Tagliaerba...");
     #endif
 
+    // Inizializza I2C
     Wire.begin();
+    
+    // Inizializza i pin
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH); // Accendi il LED durante l'inizializzazione
 
-    // Initialize components
+    // Inizializza il GPS
+    #ifdef ENABLE_GPS
+        gps.begin();
+    #endif
+
+    // Inizializza l'IMU
+    #ifdef ENABLE_IMU
+        imu.begin();
+    #endif
+
+    // Inizializza il monitor della batteria
     #ifdef ENABLE_BATTERY_MONITOR
         batteryMonitor = INA226_WE(BATTERY_MONITOR_ADDRESS);
-        
         if (!batteryMonitor.init()) {
-            SERIAL_DEBUG.println("ERROR: Failed to initialize INA226!");
-            while(1); // Block if initialization fails
-        }   
+            SERIAL_DEBUG.println("ERRORE: Impossibile inizializzare INA226!");
+        }
         batteryMonitor.setAverage(AVERAGE_16);
         batteryMonitor.setConversionTime(CONV_TIME_1100);
         batteryMonitor.setMeasureMode(CONTINUOUS);
         batteryMonitor.setCorrectionFactor(0.95);
     #endif
 
-    // Initialize motors
+    // Inizializza il controller dei motori
     #ifdef ENABLE_DRIVE_MOTORS
         motorController.begin();
-        mowerManeuver.begin();
     #endif
 
-    // Initialize sensors
-    #ifdef ENABLE_ULTRASONIC
-        ultrasonicSensors.begin();
-    #endif
-
-    #ifdef ENABLE_BUMP_SENSORS
-        bumpSensors.begin();
-    #endif
-
-    #ifdef ENABLE_IMU
-        imu.begin();
-    #endif
-
-    // Initialize GPS
-    #ifdef ENABLE_GPS
-        SERIAL_GPS.begin(SERIAL_GPS_BAUD);
-        gps.begin();
-    #endif
-
-    // Initialize perimeter
-    #ifdef ENABLE_PERIMETER
-        perimeterSensors.begin();
-    #endif
-
-    // Initialize rain sensor
-    #ifdef ENABLE_RAIN_SENSOR
-        rainSensor.begin();
-    #endif
-
-    // Initialize actuators
-    #ifdef ENABLE_BUZZER
-        buzzer.begin();
-    #endif
-
-    #ifdef ENABLE_DISPLAY
-        lcdManager.begin();
-    #endif
-
-    #ifdef ENABLE_RELAY
-        relay.begin();
-    #endif
-
-    // Initialize blade motors
+    // Inizializza il controller delle lame
     #ifdef ENABLE_BLADE_MOTORS
         bladeController.begin();
     #endif
 
-    // Initialize communication
-    #ifdef ENABLE_WIFI
-        SERIAL_WIFI.begin(SERIAL_WIFI_BAUD);
+    // Inizializza il display
+    #ifdef ENABLE_DISPLAY
+        lcdManager.begin();
+        // TODO: Implementare visualizzazione messaggio su LCD
+        // lcdManager.display("Robot Avviato");
     #endif
 
-    // Initialize navigation
-    #ifdef ENABLE_NAVIGATION
-        navigation.begin();
+    // Inizializza il buzzer
+    #ifdef ENABLE_BUZZER
+        buzzer.begin();
+        buzzer.beep(1000, 100); // Breve beep di conferma (frequenza 1000Hz, durata 100ms)
     #endif
 
-    // Set initial state
-    currentState = IDLE;
+    // Inizializza i relay
+    #ifdef ENABLE_RELAY
+        relay.begin();
+    #endif
+
+    // Inizializza la macchina a stati
+    mowerStateMachine.begin();
+    
+    // Imposta lo stato iniziale a IDLE
+    mowerStateMachine.sendEvent(MowerEvent::STOP_MOWING);
+
+    #ifdef SERIAL_DEBUG
+        SERIAL_DEBUG.println("Inizializzazione completata");
+    #endif
+
+    // Spegni il LED di inizializzazione
+    digitalWrite(LED_BUILTIN, LOW);
 }

@@ -118,11 +118,19 @@ WiFiController wifi(&SERIAL_WIFI, &commandHandler);
 PositionManager positionManager;
 NavigationMode navigationMode;
 
-// Initialize Navigation with Perimeter if enabled
+// Initialize Navigation with proper perimeter handling
 #ifdef ENABLE_PERIMETER
-Navigation navigation(&mowerManeuver, &ultrasonicSensors, &bumpSensors, &perimeterSensors, &positionManager);
+Navigation navigation(&mowerManeuver, 
+                    &ultrasonicSensors, 
+                    &bumpSensors, 
+                    &perimeterSensors,
+                    &positionManager);
 #else
-Navigation navigation(&mowerManeuver, &ultrasonicSensors, &bumpSensors, nullptr, &positionManager);
+Navigation navigation(&mowerManeuver, 
+                    &ultrasonicSensors, 
+                    &bumpSensors, 
+                    nullptr,
+                    &positionManager);
 #endif
 #endif
 

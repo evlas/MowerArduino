@@ -2,11 +2,17 @@
 #define NAVIGATION_H
 
 #include <Arduino.h>
+#include "../../config.h"  // Deve essere incluso per primi per definire ENABLE_PERIMETER
+
+// Forward declaration per evitare dipendenze circolari
+#ifdef ENABLE_PERIMETER
+class PerimeterSensors;
+#endif
+
 #include "../motors/MotorController.h"
 #include "../motors/BladeController.h"
 #include "../sensors/UltrasonicSensors.h"
 #include "../sensors/BumpSensors.h"
-#include "../sensors/PerimeterSensors.h"
 #include "Maneuver.h"
 #include "../position/PositionManager.h"
 
@@ -27,11 +33,19 @@ class NavigationMode {
 
 class Navigation {
     public:
+#ifdef ENABLE_PERIMETER
         Navigation(Maneuver* maneuver, 
-                   UltrasonicSensors* ultrasonic, 
-                   BumpSensors* bumper, 
-                   PerimeterSensors* perimeter, 
-                   PositionManager* positionManager);
+                 UltrasonicSensors* ultrasonic, 
+                 BumpSensors* bumper, 
+                 PerimeterSensors* perimeter,
+                 PositionManager* positionManager);
+#else
+        Navigation(Maneuver* maneuver, 
+                 UltrasonicSensors* ultrasonic, 
+                 BumpSensors* bumper, 
+                 void* perimeter,  // Dummy parameter when perimeter is disabled
+                 PositionManager* positionManager);
+#endif
         ~Navigation();
         
         // Inizializzazione
@@ -53,7 +67,11 @@ class Navigation {
         Maneuver* _maneuver;
         UltrasonicSensors* _ultrasonic;
         BumpSensors* _bumper;
+#ifdef ENABLE_PERIMETER
         PerimeterSensors* _perimeter;
+#else
+        void* _perimeter;  // Dummy pointer when perimeter is disabled
+#endif
         
         // Stato
         NavigationMode _mode;
@@ -77,7 +95,7 @@ class Navigation {
         bool checkObstacles();
         void handleObstacle();
         
-        // Gestione del perimetro
+        // Gestione del perimetro (sempre disponibile, ma controlla _perimeter != nullptr)
         bool checkPerimeter();
         void handlePerimeter();
 };

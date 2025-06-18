@@ -1,15 +1,27 @@
 #include "Navigation.h"
-#include "../../config.h"
 
+// Includi l'header completo solo se necessario
+#ifdef ENABLE_PERIMETER
+#include "../../src/sensors/PerimeterSensors.h"
+#endif
+
+#ifdef ENABLE_PERIMETER
 Navigation::Navigation(Maneuver* maneuver, 
-                       UltrasonicSensors* ultrasonic, 
-                       BumpSensors* bumper, 
-                       PerimeterSensors* perimeter, 
-                       PositionManager* positionManager) :
+                     UltrasonicSensors* ultrasonic, 
+                     BumpSensors* bumper, 
+                     PerimeterSensors* perimeter, 
+                     PositionManager* positionManager) :
+#else
+Navigation::Navigation(Maneuver* maneuver, 
+                     UltrasonicSensors* ultrasonic, 
+                     BumpSensors* bumper, 
+                     void* perimeter, 
+                     PositionManager* positionManager) :
+#endif
     _maneuver(maneuver),
     _ultrasonic(ultrasonic),
     _bumper(bumper),
-    _perimeter(perimeter),
+    _perimeter(static_cast<decltype(_perimeter)>(perimeter)),
     _positionManager(*positionManager),  // Initialize with passed PositionManager
     _mode(),  // Initialize with default constructor
     _isNavigating(false),
@@ -28,9 +40,11 @@ Navigation::Navigation(Maneuver* maneuver,
     _positionManager.enableGPS(true);
     
     // Initialize perimeter if available
+#ifdef ENABLE_PERIMETER
     if (_perimeter != nullptr) {
         _perimeter->begin();
     }
+#endif
 }
 
 Navigation::~Navigation() {
@@ -210,27 +224,40 @@ void Navigation::handleObstacle() {
 
 // Gestione del perimetro
 bool Navigation::checkPerimeter() {
+    // Se il perimetro è disabilitato o non inizializzato, restituisci false
     if (_perimeter == nullptr) {
         return false;
     }
+    
+#ifdef ENABLE_PERIMETER
+    // Il perimetro è abilitato, possiamo usare il puntatore
     return _perimeter->isDetected();
+#else
+    return false;  // Perimetro disabilitato a tempo di compilazione
+#endif
 }
 
 void Navigation::handlePerimeter() {
-    if (_perimeter != nullptr) {
-        // Ferma il robot
-        _maneuver->stop();
-        delay(500); // Pausa per sicurezza
-        
-        // Torna indietro
-        _maneuver->backward();
-        delay(1000);
-        
-        // Gira di 180 gradi
-        _maneuver->rotate(180);
-        delay(1000);
-        
-        // Riprendi la navigazione
-        _maneuver->forward();
+    // Se il perimetro è disabilitato o non inizializzato, non fare nulla
+    if (_perimeter == nullptr) {
+        return;
     }
+    
+#ifdef ENABLE_PERIMETER
+    // Il perimetro è abilitato, possiamo procedere con la gestione
+    // Ferma il robot
+    _maneuver->stop();
+    delay(500); // Pausa per sicurezza
+    
+    // Torna indietro
+    _maneuver->backward();
+    delay(1000);
+    
+    // Gira di 180 gradi
+    _maneuver->rotate(180);
+    delay(1000);
+    
+    // Riprendi la navigazione
+    _maneuver->forward();
+#endif
 }
