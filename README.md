@@ -19,34 +19,6 @@ Un sistema avanzato per robot tagliaerba autonomo basato su **Arduino Mega 2560*
 
 ```mermaid
 graph TD
-    %% Nodo principale
-    A[Arduino Mega 2560]
-    
-    %% Sensori
-    B[Sensori]
-    B1[IMU]
-    B2[GPS NEO-6M]
-    B3[Sensori Ultrasuoni]
-    B4[Sensori di Urti]
-    B5[Sensori Perimetrali]
-    B6[Sensore Pioggia]
-    B7[Monitor Batteria INA226]
-    
-    %% Attuatori
-    C[Attuatori]
-    C1[Controller Motori]
-    C2[Controllo Lama]
-    C3[LCD I2C 16x2]
-    C4[Buzzer]
-    C5[Relè]
-    
-    %% Comunicazione
-    D[Comunicazione]
-    D1[WiFi ESP8266]
-    D2[Debug Seriale]
-
-```mermaid
-graph TD
     %% Firmware
     E[Firmware]
     E1[Inizializzazione]
