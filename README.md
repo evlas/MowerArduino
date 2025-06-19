@@ -44,7 +44,9 @@ graph TD
     D[Comunicazione]
     D1[WiFi ESP8266]
     D2[Debug Seriale]
-    
+
+```mermaid
+graph TD
     %% Firmware
     E[Firmware]
     E1[Inizializzazione]
