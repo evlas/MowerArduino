@@ -44,7 +44,7 @@
 #define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
 #define ENABLE_GPS              // Sensore GPS (commenta se non presente)
 #define SERIAL_GPS_BAUD 115200
-////#define ENABLE_PERIMETER        // Sensore filo perimetrale
+//#define ENABLE_PERIMETER        // Sensore filo perimetrale
 #define PERIMETER_SIGNAL_THRESHOLD 100  // Soglia di rilevamento del segnale del perimetro
 #define ENABLE_ULTRASONIC         // Sensore ultrasonico per rilevamento ostacoli
 #define ENABLE_BUMP_SENSORS       // Sensori di urto meccanici

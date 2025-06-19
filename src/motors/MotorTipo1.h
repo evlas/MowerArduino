@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "Motor.h"
 #include "../../config.h"
+#include "../../pin_config.h"
 
 class MotorTipo1 : public Motor {
 public:
@@ -44,8 +45,11 @@ private:
 
     // Encoder
     volatile long _encoderPosition;
-    void updateEncoderPosition();
-
+    static void handleEncoderISR();
+    void updateEncoder();
+    static MotorTipo1* _instance;
+    volatile uint8_t _lastState;
+    
     // PWM frequency
 //    static const uint32_t PWM_FREQUENCY = 20000;
 //    static const uint8_t PWM_RESOLUTION = 8;
