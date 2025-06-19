@@ -19,36 +19,54 @@ Un sistema avanzato per robot tagliaerba autonomo basato su **Arduino Mega 2560*
 
 ```mermaid
 graph TD
-    A[Arduino Mega 2560] --> B[Sensori]
-    A --> C[Attuatori]
-    A --> D[Comunicazione]
+    %% Nodo principale
+    A[Arduino Mega 2560]
     
-    B --> B1[IMU]
-    B --> B2[GPS (NEO-6M)]
-    B --> B3[Sensori Ultrasuoni]
-    B --> B4[Sensori di Urti]
-    B --> B5[Sensori Perimetrali]
-    B --> B6[Sensore Pioggia]
-    B --> B7[Monitor Batteria INA226]
+    %% Sensori
+    B[Sensori]
+    B1[IMU]
+    B2[GPS NEO-6M]
+    B3[Sensori Ultrasuoni]
+    B4[Sensori di Urti]
+    B5[Sensori Perimetrali]
+    B6[Sensore Pioggia]
+    B7[Monitor Batteria INA226]
     
-    C --> C1[Controller Motori]
-    C --> C2[Controllo Lama]
-    C --> C3[LCD I2C]
-    C --> C4[Buzzer]
-    C --> C5[Relè]
+    %% Attuatori
+    C[Attuatori]
+    C1[Controller Motori]
+    C2[Controllo Lama]
+    C3[LCD I2C 16x2]
+    C4[Buzzer]
+    C5[Relè]
     
-    D --> D1[WiFi (ESP8266)]
-    D --> D2[Debug Seriale]
+    %% Comunicazione
+    D[Comunicazione]
+    D1[WiFi ESP8266]
+    D2[Debug Seriale]
     
-    E[Firmware] --> E1[Inizializzazione]
-    E --> E2[Loop Principale]
-    E --> E3[Macchina a Stati]
+    %% Firmware
+    E[Firmware]
+    E1[Inizializzazione]
+    E2[Loop Principale]
+    E3[Macchina a Stati]
+    F1[IDLE]
+    F2[MOWING]
+    F3[DOCKING]
+    F4[CHARGING]
+    F5[ERROR]
     
-    E3 --> F1[IDLE]
-    E3 --> F2[MOWING]
-    E3 --> F3[DOCKING]
-    E3 --> F4[CHARGING]
-    E3 --> F5[ERROR]
+    %% Collegamenti
+    A --> B
+    A --> C
+    A --> D
+    
+    B --> B1 & B2 & B3 & B4 & B5 & B6 & B7
+    C --> C1 & C2 & C3 & C4 & C5
+    D --> D1 & D2
+    
+    E --> E1 & E2 & E3
+    E3 --> F1 & F2 & F3 & F4 & F5
 ```
 
 ## 🚀 Funzionalità
