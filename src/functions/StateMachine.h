@@ -22,6 +22,7 @@ enum class MowerEvent {
     START_MOWING,       // Avvia il taglio
     STOP_MOWING,        // Ferma il taglio
     MANUAL_MODE,        // Passa alla modalità manuale
+    RETURN_TO_BASE,     // Ritorna alla base di ricarica
     LOW_BATTERY,        // Batteria scarica
     BATTERY_CHARGED,    // Batteria carica
     OBSTACLE_DETECTED,  // Rilevato ostacolo
@@ -62,12 +63,26 @@ public:
     // Verifica se il robot sta tagliando
     bool isMowing() const;
     
+    // Metodi per la gestione degli eventi
+    void handleIdleState(MowerEvent event);
+    void handleMowingState(MowerEvent event);
+    void handleManualControlState(MowerEvent event);
+    void handleReturnToBaseState(MowerEvent event);
+    void handleEmergencyStopState(MowerEvent event);
+    void handleRecoveryState(MowerEvent event);
+    void handleDefaultState(MowerEvent event);
+    void handleGlobalEvents(MowerEvent event);
+    
+    // Metodi di utilità per il debug
+    const char* stateToString(MowerState state);
+    const char* eventToString(MowerEvent event);
+    
 private:
     // Stato corrente
     MowerState _currentState;
-    
-    // Tempo di inizio dello stato corrente
+    MowerState _previousState;  // Aggiunto per salvare lo stato precedente
     unsigned long _stateStartTime;
+    NavigationMode::Mode _navigationMode;
     
     // Gestisci la transizione di stato
     void handleStateTransition(MowerState newState);

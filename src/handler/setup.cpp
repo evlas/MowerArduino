@@ -3,6 +3,12 @@
 #include "../../pin_config.h"
 #include <Wire.h>
 
+// Dichiarazione esterna di commandHandler
+#ifdef ENABLE_WIFI
+#include "../../src/communications/CommandHandler.h"
+extern CommandHandler commandHandler;
+#endif
+
 // Include GPS
 #ifdef ENABLE_GPS
 #include "../../src/sensors/GPS.h"
@@ -48,8 +54,12 @@ unsigned long lastSafetyCheck = 0;
 #endif
 
 #ifdef ENABLE_WIFI
-#include "../../src/communications/WiFiController.h"
+#include "../../src/communications/WiFiSerialBridge.h"
 #include "../../src/communications/CommandHandler.h"
+#include "../../src/communications/WiFiCommands.h"
+
+// La variabile wifiBridge è definita in WiFiSerialBridge.cpp
+extern WiFiSerialBridge wifiBridge;
 #endif
 
 #ifdef ENABLE_NAVIGATION
@@ -91,7 +101,7 @@ unsigned long lastSafetyCheck = 0;
 // La macchina a stati è ora gestita dalla classe StateMachine
 // mowerStateMachine è definita in StateMachine.cpp
 
-void my_setup() {
+void setupMower() {
     // Inizializza la comunicazione seriale
     #ifdef SERIAL_DEBUG
         SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
@@ -145,6 +155,18 @@ void my_setup() {
         lcdManager.begin();
         // TODO: Implementare visualizzazione messaggio su LCD
         // lcdManager.display("Robot Avviato");
+    #endif
+
+    // Inizializza il modulo WiFi
+    #ifdef ENABLE_WIFI
+        wifiBridge.begin();
+        
+        // Inizializza il gestore dei comandi WiFi
+        initWiFiCommands(wifiBridge, commandHandler);
+        
+        #ifdef SERIAL_DEBUG
+            SERIAL_DEBUG.println("WiFi Serial Bridge inizializzato");
+        #endif
     #endif
 
     // Inizializza il buzzer

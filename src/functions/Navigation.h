@@ -23,7 +23,8 @@ class NavigationMode {
             RANDOM,      // Movimento casuale
             PARALLEL,    // Linee parallele
             SPIRAL,      // Spirale
-            STOPPED      // Ferma
+            STOPPED,     // Ferma
+            MANUAL       // Controllo manuale
         } mode;
         
         NavigationMode() : mode(STOPPED) {}

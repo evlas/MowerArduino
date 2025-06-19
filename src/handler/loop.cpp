@@ -3,6 +3,12 @@
 #include "../../config.h"
 #include "../../src/error/ErrorManager.h"
 
+// Dichiarazione esterna di commandHandler
+#ifdef ENABLE_WIFI
+#include "../../src/communications/CommandHandler.h"
+extern CommandHandler commandHandler;
+#endif
+
 // Includi i moduli necessari
 #ifdef ENABLE_GPS
 #include "../../src/sensors/GPS.h"
@@ -35,7 +41,7 @@ unsigned long lastNavigationUpdate = 0;
 static bool criticalError = false;
 static unsigned long lastErrorTime = 0;
 
-void my_loop() {
+void loopMower() {
     unsigned long currentTime = millis();
 
     // 1. Gestione degli errori critici
@@ -180,23 +186,10 @@ void my_loop() {
     // 4. Aggiornamento della macchina a stati
     mowerStateMachine.update();
     
-    // 5. Invio telemetria (se abilitato e non in stato di emergenza)
+    // 5. Gestione telemetria (se abilitata)
     #ifdef ENABLE_WIFI
-        if (currentTime - lastTelemetryUpdate >= TELEMETRY_UPDATE_INTERVAL) {
-            lastTelemetryUpdate = currentTime;
-            
-            // Prepara i dati di telemetria
-            // TelemetryData data;
-            // data.state = mowerStateMachine.getCurrentState();
-            // data.batteryVoltage = batteryMonitor.getBusVoltage();
-            // data.batteryCurrent = batteryMonitor.getCurrent_mA();
-            // ... altri dati ...
-            
-            // Invia i dati di telemetria
-            // if (!wifi.sendTelemetry(data)) {
-            //     ErrorManager::addError(ErrorCode::WIFI_ERROR, "Errore invio telemetria");
-            // }
-        }
+        // Aggiorna la telemetria se abilitata nel CommandHandler
+        commandHandler.updateTelemetry();
     #endif
     
     // 6. Gestione del watchdog

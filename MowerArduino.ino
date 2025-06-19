@@ -1,19 +1,23 @@
-/*
- * Robot Tagliaerba Arduino Mega - File Principale
- * Versione Modulare Riorganizzata
- *
- * Struttura file:
- * - config.h (configurazione generale)
- * - pin_config.h (configurazione pin)
- * - setup.ino (setup)
- * - loop.ino (loop)
- * - MowerArduino.ino (file principale)
- * - src/functions (cartella funzioni)
- * - src/sensors (cartella sensori)
- * - src/motors (cartella motori)
- * - src/actuators (cartella attuatori)
- * - src/communications (cartella comunicazioni)
- * - src/LCD (cartella LCD)
+/**
+ * @file MowerArduino.ino
+ * @brief Main file for the Arduino Mower project
+ * @version 1.0
+ * @date 2025
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ * This is the main entry point for the Arduino-based robotic lawn mower system.
+ * The project is organized in a modular structure with the following components:
+ * - config.h: Global configuration settings
+ * - pin_config.h: Pin configuration for all hardware components
+ * - setup.ino: System initialization code
+ * - loop.ino: Main program loop
+ * - src/functions: Core functionality modules
+ * - src/sensors: Sensor interfaces and drivers
+ * - src/motors: Motor control and drivers
+ * - src/actuators: Actuator control (buzzers, relays, etc.)
+ * - src/communications: Communication protocols and interfaces
+ * - src/LCD: Display and user interface
  */
 
 #include <Arduino.h>
@@ -22,6 +26,9 @@
 // Include configuration
 #include "config.h"
 #include "pin_config.h"
+
+// Include delle classi di sistema
+#include "src/functions/StateMachine.h"
 
 #include "src/handler/setup.h"
 #include "src/handler/loop.h"
@@ -103,11 +110,26 @@ Relay relay;
 // COMMUNICATIONS
 #ifdef ENABLE_WIFI
 #include <ArduinoJson.h>
-#include "src/communications/WiFiController.h"
+#include "src/communications/WiFiSerialBridge.h"
 #include "src/communications/CommandHandler.h"
 
-// Initialize WiFi serial
-WiFiController wifi(&SERIAL_WIFI, &commandHandler);
+// La variabile wifiBridge è definita in WiFiSerialBridge.cpp
+extern WiFiSerialBridge wifiBridge;
+
+// Dichiarazione anticipata
+extern StateMachine mowerStateMachine;
+#ifdef ENABLE_NAVIGATION
+extern Navigation navigation;
+#endif
+
+// Definizione di commandHandler
+CommandHandler commandHandler(&mowerStateMachine, 
+#ifdef ENABLE_NAVIGATION
+    &navigation
+#else
+    nullptr
+#endif
+);
 #endif
 
 // FUNCTIONS
@@ -149,11 +171,24 @@ ChargingSystem chargingSystem;
 Scheduler scheduler;
 #endif
 
-void setup() {
-
-  my_setup();
+/**
+ * @brief Arduino setup function - called once at startup
+ * 
+ * Initializes all system components and sets up the initial state.
+ * This function is called once when the Arduino starts up.
+ */
+void setup()
+{
+    setupMower();
 }
 
-void loop() {
-  my_loop();
+/**
+ * @brief Arduino main loop - called repeatedly
+ * 
+ * This is the main program loop that runs continuously after setup().
+ * It handles all the main functionality of the robotic mower.
+ */
+void loop()
+{
+    loopMower();
 }

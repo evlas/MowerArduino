@@ -13,6 +13,11 @@ const char* menuItems[] = {
 const int MENU_ITEMS_COUNT = sizeof(menuItems) / sizeof(menuItems[0]);
 int selectedMenuItem = 0;
 
+/**
+ * @brief Construct a new LCDManager object.
+ * 
+ * Initializes the LCD display and sets up button pins with pull-up resistors.
+ */
 LCDManager::LCDManager() {
     _bootProgress = 0.0f;
     _lastDebounceTime = 0;
@@ -24,10 +29,19 @@ LCDManager::LCDManager() {
     pinMode(Stop_Key, INPUT_PULLUP);
 }
 
+/**
+ * @brief Destroy the LCDManager object.
+ */
 LCDManager::~LCDManager() {
-    // Null
+    // Cleanup if needed
 }
 
+/**
+ * @brief Initialize the LCD display and set initial states.
+ * 
+ * Sets up the LCD display with backlight and initializes the menu
+ * and robot states to their default values.
+ */
 void LCDManager::begin() {
     // Inizializza il display
     _lcd.begin(16, 2);
@@ -41,6 +55,13 @@ void LCDManager::begin() {
     showBootScreen();
 }
 
+/**
+ * @brief Update the display and handle user input.
+ * 
+ * This method should be called in the main loop to keep the display
+ * and user interface responsive. It updates button states and handles
+ * the current menu navigation.
+ */
 void LCDManager::update() {
     // Aggiorna lo stato dei pulsanti
     updateButtonStates();
@@ -68,6 +89,11 @@ void LCDManager::update() {
     }
 }
 
+/**
+ * @brief Display the boot screen on the LCD.
+ * 
+ * Shows the initial boot message with a progress bar at 0%.
+ */
 void LCDManager::showBootScreen() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -77,17 +103,33 @@ void LCDManager::showBootScreen() {
     showProgressBar(0.0f);
 }
 
+/**
+ * @brief Update the boot progress indicator.
+ * 
+ * @param progress Progress value between 0.0 and 1.0
+ */
 void LCDManager::updateBootProgress(float progress) {
     _bootProgress = progress;
     if (_bootProgress > 1.0f) _bootProgress = 1.0f;
     showProgressBar(_bootProgress);
 }
 
+/**
+ * @brief Set the robot's current state and update the display.
+ * 
+ * @param state The new robot state to set
+ */
 void LCDManager::setRobotState(RobotState::State state) {
     _robotState.setState(state);
     showRobotState();
 }
 
+/**
+ * @brief Display the current robot state on the LCD.
+ * 
+ * Shows a text representation of the current robot state
+ * (e.g., "Idle", "Running", "Error").
+ */
 void LCDManager::showRobotState() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -118,6 +160,12 @@ void LCDManager::showRobotState() {
     }
 }
 
+/**
+ * @brief Display the main menu on the LCD.
+ * 
+ * Shows the currently selected menu item and instructions
+ * for navigation.
+ */
 void LCDManager::showMainMenu() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -126,6 +174,12 @@ void LCDManager::showMainMenu() {
     _lcd.print("Use + - to select");
 }
 
+/**
+ * @brief Handle menu navigation based on button presses.
+ * 
+ * Processes button presses to navigate through menu items
+ * and change menu states.
+ */
 void LCDManager::handleMenuNavigation() {
     if (isPlusPressed()) {
         selectedMenuItem = (selectedMenuItem + 1) % MENU_ITEMS_COUNT;
@@ -158,6 +212,11 @@ void LCDManager::handleMenuNavigation() {
     }
 }
 
+/**
+ * @brief Display the configuration menu.
+ * 
+ * Shows the configuration options (currently under development).
+ */
 void LCDManager::showConfigMenu() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -166,6 +225,11 @@ void LCDManager::showConfigMenu() {
     _lcd.print("Under development");
 }
 
+/**
+ * @brief Display the speed control menu.
+ * 
+ * Shows speed control options (currently under development).
+ */
 void LCDManager::showSpeedMenu() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -174,6 +238,11 @@ void LCDManager::showSpeedMenu() {
     _lcd.print("Under development");
 }
 
+/**
+ * @brief Display the battery information menu.
+ * 
+ * Shows battery status and information (currently under development).
+ */
 void LCDManager::showBatteryMenu() {
     clearDisplay();
     _lcd.setCursor(0, 0);
@@ -182,18 +251,42 @@ void LCDManager::showBatteryMenu() {
     _lcd.print("Under development");
 }
 
+/**
+ * @brief Check if the start button is currently pressed.
+ * 
+ * @return true if the start button is pressed (LOW due to pull-up)
+ * @return false if the start button is not pressed
+ */
 bool LCDManager::isStartPressed() const {
     return _startState == LOW;
 }
 
+/**
+ * @brief Check if the stop button is currently pressed.
+ * 
+ * @return true if the stop button is pressed (LOW due to pull-up)
+ * @return false if the stop button is not pressed
+ */
 bool LCDManager::isStopPressed() const {
     return _stopState == LOW;
 }
 
+/**
+ * @brief Check if the plus button is currently pressed.
+ * 
+ * @return true if the plus button is pressed (LOW due to pull-up)
+ * @return false if the plus button is not pressed
+ */
 bool LCDManager::isPlusPressed() const {
     return _plusState == LOW;
 }
 
+/**
+ * @brief Check if the minus button is currently pressed.
+ * 
+ * @return true if the minus button is pressed (LOW due to pull-up)
+ * @return false if the minus button is not pressed
+ */
 bool LCDManager::isMinusPressed() const {
     return _minusState == LOW;
 }
@@ -242,30 +335,47 @@ void LCDManager::updateButtonStates() {
     _lastMinusState = minusReading;
 }
 
+/**
+ * @brief Clear the LCD display and reset cursor position.
+ */
 void LCDManager::clearDisplay() {
     _lcd.clear();
     _lcd.setCursor(0, 0);
 }
 
+/**
+ * @brief Display a title on the LCD screen.
+ * 
+ * Clears the display and shows the given title on the first line.
+ * 
+ * @param title The title text to display
+ */
 void LCDManager::showMenuTitle(const char* title) {
     clearDisplay();
-    _lcd.setCursor(0, 0);
     _lcd.print(title);
+    _lcd.setCursor(0, 1);
 }
 
+/**
+ * @brief Display a progress bar on the LCD.
+ * 
+ * Shows a horizontal progress bar using block characters.
+ * 
+ * @param progress Progress value between 0.0 and 1.0
+ */
 void LCDManager::showProgressBar(float progress) {
-    clearDisplay();
-    _lcd.setCursor(0, 0);
-    _lcd.print("Progress:");
+    // Ensure progress is between 0 and 1
+    progress = constrain(progress, 0.0f, 1.0f);
     
-    // Calcola il numero di caratteri per la barra
-    int barLength = static_cast<int>(progress * 16);
-    _lcd.setCursor(0, 1);
-    for (int i = 0; i < 16; i++) {
-        if (i < barLength) {
-            _lcd.print("=");
-        } else {
-            _lcd.print(" ");
-        }
+    // Calculate how many full block characters to show
+    int width = 16;  // Display width in characters
+    int blocks = progress * width;
+    
+    // Draw the progress bar
+    for (int i = 0; i < blocks; i++) {
+        _lcd.write(255);  // Full block character
+    }
+    for (int i = blocks; i < width; i++) {
+        _lcd.print(" ");  // Empty spaces
     }
 }

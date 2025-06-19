@@ -54,7 +54,11 @@
 #define ENABLE_DRIVE_MOTORS
 #define DRIVE_MOTOR_TIPO1  // Motori Brushless 5 fili
 //#define DRIVE_MOTOR_TIPO2      // Motori Brushed
-
+// Velocità massima dei motori
+#define MAX_MOTOR_SPEED 255
+#define MIN_MOTOR_SPEED 0
+#define DEFAULT_MOTOR_SPEED 200
+#define TURN_MOTOR_SPEED 100
 
 #define ENABLE_BLADE_MOTORS
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
@@ -68,7 +72,7 @@
 #define ENABLE_RELAY    // Controller relay aggiuntivi
 
 // --- FUNZIONALITÀ ---
-//#define ENABLE_WIFI        // Comunicazione WiFi (commenta se non presente)
+#define ENABLE_WIFI        // Comunicazione WiFi (commenta se non presente)
 #define SERIAL_WIFI_BAUD 115200
 #define ENABLE_NAVIGATION  // Sistema di navigazione avanzato
 #define ENABLE_SAFETY      // Sistema di sicurezza
@@ -88,11 +92,6 @@
 #define CHARGING_STATION_APPROACH_SPEED 50      // mm/s
 #define CHARGING_STATION_ALIGN_TOLERANCE 10     // mm
 #define CHARGING_STATION_CONNECT_TIMEOUT 30000  // ms
-
-// Velocità massima dei motori
-#define MAX_SPEED 255
-#define MIN_SPEED 0
-#define DEFAULT_SPEED 200
 
 // ========================
 // CONFIGURAZIONI TIMING

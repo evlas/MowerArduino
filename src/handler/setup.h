@@ -13,6 +13,6 @@ extern unsigned long lastSensorUpdate;
 extern unsigned long lastNavigationUpdate;
 extern unsigned long lastSafetyCheck;
 
-void my_setup();
+void setupMower();
 
 #endif

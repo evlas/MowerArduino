@@ -86,6 +86,10 @@ void Navigation::update() {
         case NavigationMode::STOPPED:
             _maneuver->stop();
             break;
+        case NavigationMode::MANUAL:
+            // In modalità manuale, il movimento è gestito direttamente dal CommandHandler
+            // Non facciamo nulla qui per non sovrascrivere i comandi manuali
+            break;
     }
 }
 
@@ -110,7 +114,7 @@ void Navigation::navigateRandom() {
     }
     
     // Muovi in linea retta con velocità default
-    _maneuver->forward(DEFAULT_SPEED); // Velocità default dal config.h
+    _maneuver->forward(DEFAULT_MOTOR_SPEED); // Velocità default dal config.h
     
     // Aggiorna la distanza percorsa usando la velocità lineare
     _currentDistance += _maneuver->getLinearVelocity() / 100.0f; // converti cm/s in m/s
@@ -180,10 +184,10 @@ void Navigation::navigateSpiral() {
     
     if (distance < targetRadius) {
         // Se siamo dentro il raggio target, muoviti in linea retta
-        _maneuver->forward(DEFAULT_SPEED);
+        _maneuver->forward(DEFAULT_MOTOR_SPEED);
     } else {
         // Se siamo fuori dal raggio target, muoviti in spirale
-        _maneuver->spiral(distance * 100, DEFAULT_SPEED);  // Converti m in cm
+        _maneuver->spiral(distance * 100, DEFAULT_MOTOR_SPEED);  // Converti m in cm
         
         // Se siamo completati l'anello, passa al successivo
         if (abs(atan2(y, x)) >= 2 * M_PI) {

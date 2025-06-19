@@ -6,39 +6,98 @@
 #include "../../config.h"
 #include "../../pin_config.h"
 
+/**
+ * @class BladeController
+ * @brief Controls the cutting blade motor of the robotic mower
+ * 
+ * This class provides an interface to control the cutting blade motor,
+ * including speed and direction control, as well as monitoring functions.
+ */
 class BladeController {
 public:
+    /**
+     * @brief Construct a new BladeController object
+     */
     BladeController();
+    
+    /**
+     * @brief Destroy the BladeController object
+     */
     ~BladeController();
     
-    // Inizializzazione
+    /**
+     * @brief Initialize the blade controller
+     * 
+     * @return true if initialization was successful
+     * @return false if initialization failed
+     */
     bool begin();
     
-    // Controllo motori
+    /**
+     * @brief Set the blade motor speed
+     * 
+     * @param speed Desired speed (0-255 for PWM control)
+     */
     void setBladeSpeed(int speed);
+    
+    /**
+     * @brief Set the blade rotation direction
+     * 
+     * @param forward True for forward rotation, false for reverse
+     */
     void setBladeDirection(bool forward);
 
-    // Stato dei motori
+    /**
+     * @brief Check if the blade motor is currently running
+     * 
+     * @return true if the blade is running
+     * @return false if the blade is stopped
+     */
     bool isBladeRunning() const;
+    
+    /**
+     * @brief Check if there is a fault with the blade motor
+     * 
+     * @return true if there is a fault
+     * @return false if there is no fault
+     */
     bool isBladeFault() const;
     
-    // Controllo tensione
+    /**
+     * @brief Get the current voltage of the blade motor
+     * 
+     * @return float The voltage in volts
+     */
     float getBladeVoltage() const;
     
-    // Controllo temperatura
+    /**
+     * @brief Get the temperature of the blade motor
+     * 
+     * @return float The temperature in degrees Celsius
+     */
     float getBladeTemperature() const;
     
-    // Gestione errori
+    /**
+     * @brief Clear any fault conditions on the blade motor
+     */
     void clearBladeFault();
 
 private:
-    // Motori
-    Motor* _Blade;
+    Motor* _Blade;  ///< Pointer to the blade motor instance
     
-    // Inizializzazione dei motori
+    /**
+     * @brief Initialize the blade motor
+     * 
+     * @return true if initialization was successful
+     * @return false if initialization failed
+     */
     bool initializeBlade();
     
-    // Creazione dei motori in base alla configurazione
+    /**
+     * @brief Create an instance of the appropriate motor type for the blade
+     * 
+     * @return Motor* Pointer to the created motor instance
+     */
     Motor* createBladeInstance();
 };
 

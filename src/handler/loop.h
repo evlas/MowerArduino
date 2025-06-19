@@ -19,6 +19,6 @@ extern unsigned long lastTelemetryUpdate;
 extern GPSModule gps;
 #endif
 
-void my_loop();
+void loopMower();
 
 #endif

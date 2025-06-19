@@ -3,6 +3,7 @@
 
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
+#include "../../config.h"
 
 // Dati GPS
 struct GPSData {
