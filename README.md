@@ -1,10 +1,10 @@
 # 🤖 MowerArduino - Robot Tagliaerba Autonomo
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Arduino](https://img.shields.io/badge/Arduino-Compatible-00979D?logo=arduino)](https://www.arduino.cc/)
-[![Platform](https://img.shields.io/badge/Platform-ESP32-FF6F00?logo=espressif)](https://www.espressif.com/)
+[![Arduino](https://img.shields.io/badge/Arduino%20Mega%202560-Compatible-00979D?logo=arduino)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
+[![Version](https://img.shields.io/badge/Version-0.0.1-blue)](https://github.com/evlas/MowerArduino)
 
-Un sistema avanzato per robot tagliaerba autonomo basato su Arduino/ESP32, progettato per offrire un taglio preciso e intelligente del prato con il massimo dell'autonomia e della sicurezza.
+Un sistema avanzato per robot tagliaerba autonomo basato su **Arduino Mega 2560**, progettato per offrire un taglio preciso e intelligente del prato con il massimo dell'autonomia e della sicurezza.
 
 ## 🌟 Caratteristiche Principali
 
@@ -19,21 +19,36 @@ Un sistema avanzato per robot tagliaerba autonomo basato su Arduino/ESP32, proge
 
 ```mermaid
 graph TD
-    A[Hardware] --> B[Sensori]
+    A[Arduino Mega 2560] --> B[Sensori]
     A --> C[Attuatori]
-    B --> D[IMU]
-    B --> E[GPS]
-    B --> F[Sensori di urto]
-    C --> G[Motori]
-    C --> H[Lama]
+    A --> D[Comunicazione]
     
-    I[Firmware] --> J[Setup]
-    I --> K[Main Loop]
-    I --> L[Macchina a Stati]
+    B --> B1[IMU]
+    B --> B2[GPS (NEO-6M)]
+    B --> B3[Sensori Ultrasuoni]
+    B --> B4[Sensori di Urti]
+    B --> B5[Sensori Perimetrali]
+    B --> B6[Sensore Pioggia]
+    B --> B7[Monitor Batteria INA226]
     
-    J --> M[Inizializzazione]
-    K --> N[Gestione Eventi]
-    L --> O[Stati Operativi]
+    C --> C1[Controller Motori]
+    C --> C2[Controllo Lama]
+    C --> C3[LCD I2C]
+    C --> C4[Buzzer]
+    C --> C5[Relè]
+    
+    D --> D1[WiFi (ESP8266)]
+    D --> D2[Debug Seriale]
+    
+    E[Firmware] --> E1[Inizializzazione]
+    E --> E2[Loop Principale]
+    E --> E3[Macchina a Stati]
+    
+    E3 --> F1[IDLE]
+    E3 --> F2[MOWING]
+    E3 --> F3[DOCKING]
+    E3 --> F4[CHARGING]
+    E3 --> F5[ERROR]
 ```
 
 ## 🚀 Funzionalità
@@ -58,18 +73,36 @@ graph TD
 ## 🛠 Installazione
 
 1. **Prerequisiti**
-   - Arduino IDE 2.x
-   - Librerie richieste:
+   - Arduino IDE 1.8.x o successiva
+   - **Librerie richieste**:
      ```bash
-     Adafruit_GFX
-     Adafruit_SSD1306
-     ESP32Servo
+     Wire.h (inclusa nell'IDE Arduino)
+     LiquidCrystal_I2C.h
+     INA226_WE.h
+     ArduinoJson.h
+     DS1302.h
      ```
+   - **Hardware richiesto**:
+     - Scheda Arduino Mega 2560
+     - Modulo WiFi ESP8266 per la connettività
+     - Modulo GPS NEO-6M
+     - Sensore IMU (es. MPU6050)
+     - Modulo INA226 per il monitoraggio della batteria
+     - Display LCD I2C 16x2
+     - Motori brushless con controller a bordo a 5 fili (es: 42GP-4260)
 
 2. **Configurazione**
-   - Copiare `config.example.h` in `config.h`
-   - Personalizzare le impostazioni
-   - Compilare e caricare
+   - Clonare la repository
+   - Aprire il file `MowerArduino.ino` con Arduino IDE
+   - Installare le librerie richieste tramite il Gestore Librerie
+   - Configurare i parametri in `config.h` e `pin_config.h`
+   - Selezionare la scheda "Arduino Mega or Mega 2560"
+   - Selezionare la porta corretta
+   - Compilare e caricare il firmware
+
+3. **Configurazione WiFi**
+   - Il modulo ESP8266 deve essere configurato
+   - La comunicazione avviene tramite Serial2 (pin 16 RX2, 17 TX2)
 
 ## 📊 Stato del Progetto
 
