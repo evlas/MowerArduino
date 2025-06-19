@@ -2,67 +2,96 @@
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Arduino](https://img.shields.io/badge/Arduino%20Mega%202560-Compatible-00979D?logo=arduino)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
-[![Version](https://img.shields.io/badge/Version-0.0.1-blue)](https://github.com/evlas/MowerArduino)
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/evlas/MowerArduino)
 
 Un sistema avanzato per robot tagliaerba autonomo basato su **Arduino Mega 2560**, progettato per offrire un taglio preciso e intelligente del prato con il massimo dell'autonomia e della sicurezza.
 
-## 🌟 Caratteristiche Principali
+## 🌟 Novità (v0.1.0)
 
-- **Navigazione Intelligente** con sensori avanzati
-- **Taglio Efficace** con gestione ottimizzata delle lame
-- **Sicurezza Avanzata** con rilevamento ostacoli e protezioni
-- **Controllo Remoto** via WiFi
-- **Gestione Batteria** con ricarica automatica
-- **Architettura Modulare** per facile personalizzazione
+- **Gestione del Relay** per il controllo dell'alimentazione dei motori
+- **Documentazione Doxygen** completa per le classi principali
+- **Miglioramento della StateMachine** per una gestione più robusta degli stati
+- **Refactoring del codice** per ridurre l'accoppiamento tra i componenti
 
 ## 🏗 Architettura del Sistema
 
 ```mermaid
 graph TD
-    %% Firmware
-    E[Firmware]
-    E1[Inizializzazione]
-    E2[Loop Principale]
-    E3[Macchina a Stati]
-    F1[IDLE]
-    F2[MOWING]
-    F3[DOCKING]
-    F4[CHARGING]
-    F5[ERROR]
+    %% Nodo principale
+    A[Arduino Mega 2560]
+    
+    %% Moduli principali
+    B[Moduli]
+    B1[State Machine]
+    B2[Gestione Motori]
+    B3[Controllo Lame]
+    B4[Gestione Batteria]
+    B5[Comunicazione WiFi]
+    
+    %% Sensori
+    C[Sensori]
+    C1[IMU]
+    C2[GPS NEO-6M]
+    C3[Ultrasuoni]
+    C4[Urti]
+    C5[Perimetrali]
+    C6[Pioggia]
+    C7[Batteria INA226]
+    
+    %% Attuatori
+    D[Attuatori]
+    D1[Motori di Traslazione]
+    D2[Motore Lama]
+    D3[LCD 16x2 I2C]
+    D4[Buzzer]
+    D5[Relè di Potenza]
     
     %% Collegamenti
     A --> B
-    A --> C
-    A --> D
-    
-    B --> B1 & B2 & B3 & B4 & B5 & B6 & B7
-    C --> C1 & C2 & C3 & C4 & C5
-    D --> D1 & D2
-    
-    E --> E1 & E2 & E3
-    E3 --> F1 & F2 & F3 & F4 & F5
+    B --> B1 & B2 & B3 & B4 & B5
+    A --> C & D
+    C --> C1 & C2 & C3 & C4 & C5 & C6 & C7
+    D --> D1 & D2 & D3 & D4 & D5
 ```
 
-## 🚀 Funzionalità
+## 🚀 Funzionalità Principali
 
-### 🧭 Navigazione
-- Mappatura dell'area di lavoro
-- Evitamento ostacoli
-- Percorsi efficienti
-- Ritorno automatico alla base
+### 🧭 Navigazione e Controllo
+- **Macchina a Stati** per la gestione delle operazioni
+- **Controllo dei Motori** con supporto per motori brushless
+- **Gestione del Relay** per la sicurezza dell'alimentazione
+- **Navigazione Intelligente** con evitamento ostacoli
 
-### ⚡ Energia
-- Monitoraggio batteria
-- Ricarica automatica
-- Gestione del consumo
+### ⚡ Gestione Energia
+- Monitoraggio batteria con INA226
+- **Gestione del Relay** per il risparmio energetico
+- Spegnimento automatico in caso di bassa tensione
 
 ### 🔒 Sicurezza
-- Rilevamento ostacoli
-- Protezione lama
-- Arresto di emergenza
-- Controlli integrità
+- **Protezione da sovracorrente**
+- **Arresto di emergenza**
+- **Controlli di sicurezza** integrati
+- **Gestione del Relay** per isolare i componenti quando non in uso
 
-## 🛠 Installazione
+## 🛠 Struttura del Codice
+
+```
+src/
+├── LCD/               # Gestione display LCD
+├── actuators/         # Attuatori (relay, buzzer, ecc.)
+├── battery/          # Gestione batteria e alimentazione
+├── communications/    # Comunicazione WiFi e seriale
+├── error/            # Gestione errori
+├── functions/        # Funzionalità principali
+│   └── StateMachine.cpp/h  # Macchina a stati principale
+├── handler/          # Gestori di sistema
+├── motors/           # Controllo motori e lame
+├── position/         # Gestione posizione
+├── safety/           # Funzioni di sicurezza
+└── sensors/          # Gestione sensori
+```
+
+## 🔧 Installazione e Configurazione
 
 1. **Prerequisiti**
    - Arduino IDE 1.8.x o successiva
@@ -74,50 +103,40 @@ graph TD
      ArduinoJson.h
      DS1302.h
      ```
-   - **Hardware richiesto**:
-     - Scheda Arduino Mega 2560
-     - Modulo WiFi ESP8266 per la connettività
-     - Modulo GPS NEO-6M
-     - Sensore IMU (es. MPU6050)
-     - Modulo INA226 per il monitoraggio della batteria
-     - Display LCD I2C 16x2
-     - Motori brushless con controller a bordo a 5 fili (es: 42GP-4260)
 
 2. **Configurazione**
    - Clonare la repository
-   - Aprire il file `MowerArduino.ino` con Arduino IDE
-   - Installare le librerie richieste tramite il Gestore Librerie
-   - Configurare i parametri in `config.h` e `pin_config.h`
-   - Selezionare la scheda "Arduino Mega or Mega 2560"
-   - Selezionare la porta corretta
+   - Aprire `MowerArduino.ino` con Arduino IDE
+   - Installare le librerie richieste
+   - Configurare `config.h` e `pin_config.h`
+   - Selezionare "Arduino Mega or Mega 2560"
    - Compilare e caricare il firmware
-
-3. **Configurazione WiFi**
-   - Il modulo ESP8266 deve essere configurato
-   - La comunicazione avviene tramite Serial2 (pin 16 RX2, 17 TX2)
 
 ## 📊 Stato del Progetto
 
-| Categoria | Stato |
-|-----------|-------|
-| Hardware | ✅ Completato |
-| Firmware Base | ✅ Completato |
-| Navigazione | 🟡 In Sviluppo |
-| Interfaccia Web | 🟡 In Sviluppo |
-| Documentazione | 🟡 In Sviluppo |
+| Componente           | Stato       | Note                                      |
+|----------------------|-------------|------------------------------------------|
+| Hardware            | ✅ Completato |                                          |
+| Core Firmware       | ✅ Completato | Gestione base del sistema                |
+| State Machine       | ✅ Completato | Gestione stati e transizioni             |
+| Gestione Relay      | ✅ Completato | Controllo alimentazione motori           |
+| Controllo Motori    | 🟡 In Sviluppo |                                          |
+| Navigazione         | 🟡 In Sviluppo |                                          |
+| Documentazione      | 🟡 In Corso  | In corso di completamento                 |
+
 
 ## 📋 Roadmap
 
-### 🎯 Prossime Versioni
-- [x] Sistema base di navigazione
-- [ ] Integrazione sensori avanzati
-- [ ] Interfaccia web completa
-- [ ] Supporto multi-lingua
+### 🚩 Prossimi Passi
+- [ ] Completamento documentazione Doxygen
+- [ ] Test approfonditi del sistema di gestione relay
+- [ ] Implementazione algoritmi di navigazione
+- [ ] Interfaccia utente avanzata
 
 ### 🔮 Futuro
 - Integrazione con sistemi domotici
 - App mobile dedicata
-- Machine learning per percorsi ottimizzati
+- Ottimizzazione percorsi di taglio
 
 ## 🤝 Contributi
 
@@ -126,10 +145,6 @@ I contributi sono benvenuti! Per favore leggi le [linee guida per i contributi](
 ## 📄 Licenza
 
 Questo progetto è rilasciato sotto licenza MIT. Vedi il file `LICENSE` per i dettagli.
-
-## 🙋 Supporto
-
-Per domande o supporto, apri una [issue](https://github.com/tu-utente/MowerArduino/issues) sulla repository.
 
 ---
 
