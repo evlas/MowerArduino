@@ -141,19 +141,35 @@ PositionManager positionManager;
 NavigationMode navigationMode;
 
 // Initialize Navigation with proper perimeter handling
-#ifdef ENABLE_PERIMETER
-Navigation navigation(&mowerManeuver, 
-                    &ultrasonicSensors, 
-                    &bumpSensors, 
-                    &perimeterSensors,
-                    &positionManager);
+#ifdef ENABLE_ULTRASONIC
+  #define ULTRASONIC_PTR &ultrasonicSensors
 #else
-Navigation navigation(&mowerManeuver, 
-                    &ultrasonicSensors, 
-                    &bumpSensors, 
-                    nullptr,
-                    &positionManager);
+  #define ULTRASONIC_PTR nullptr
 #endif
+
+#ifdef ENABLE_BUMP_SENSORS
+  #define BUMPER_PTR &bumpSensors
+#else
+  #define BUMPER_PTR nullptr
+#endif
+
+#ifdef ENABLE_PERIMETER
+  #define PERIMETER_PTR &perimeterSensors
+#else
+  #define PERIMETER_PTR nullptr
+#endif
+
+#pragma GCC diagnostic push
+Navigation navigation(&mowerManeuver,
+                    ULTRASONIC_PTR,
+                    BUMPER_PTR,
+                    PERIMETER_PTR,
+                    &positionManager);
+#pragma GCC diagnostic pop
+
+#undef ULTRASONIC_PTR
+#undef BUMPER_PTR
+#undef PERIMETER_PTR
 #endif
 
 #ifdef ENABLE_SAFETY

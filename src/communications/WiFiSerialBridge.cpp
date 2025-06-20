@@ -29,13 +29,25 @@ WiFiCommand WiFiSerialBridge::processIncoming() {
     while (_serial.available()) {
         char c = _serial.read();
         
+        #ifdef SERIAL_DEBUG
+        SERIAL_DEBUG.write(c); // echo raw char for debugging
+        #endif
+        
         if (c == '\n' || c == '\r') {
             if (_inputBuffer.length() > 0) {
+                #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG.print(F("\n[WiFiBridge] RX line: "));
+                SERIAL_DEBUG.println(_inputBuffer);
+                #endif
                 cmd = _parseCommand(_inputBuffer);
                 _inputBuffer = "";
                 
                 // Se è stato registrato un gestore di comandi, chiamalo
                 if (_commandHandler && cmd.isValid) {
+                    #ifdef SERIAL_DEBUG
+                    SERIAL_DEBUG.print(F("[WiFiBridge] Dispatch cmd: "));
+                    SERIAL_DEBUG.println(cmd.command);
+                    #endif
                     _commandHandler(cmd.command, cmd.params);
                 }
                 
@@ -93,6 +105,11 @@ bool WiFiSerialBridge::sendCommand(const String& command, const JsonDocument& pa
     serializeJson(doc, output);
     _serial.println(output);
     
+    #ifdef SERIAL_DEBUG
+    SERIAL_DEBUG.print(F("[WiFiBridge] TX cmd: "));
+    SERIAL_DEBUG.println(output);
+    #endif
+    
     return true;
 }
 
@@ -109,6 +126,11 @@ bool WiFiSerialBridge::sendResponse(const String& status, const String& message,
     serializeJson(doc, output);
     _serial.println(output);
     
+    #ifdef SERIAL_DEBUG
+    SERIAL_DEBUG.print(F("[WiFiBridge] TX resp: "));
+    SERIAL_DEBUG.println(output);
+    #endif
+    
     return true;
 }
 
@@ -118,6 +140,11 @@ bool WiFiSerialBridge::sendTelemetry(const JsonDocument& data) {
     String output;
     serializeJson(data, output);
     _serial.println(output);
+    
+    #ifdef SERIAL_DEBUG
+    SERIAL_DEBUG.print(F("[WiFiBridge] TX telem: "));
+    SERIAL_DEBUG.println(output);
+    #endif
     
     return true;
 }

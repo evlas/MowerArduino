@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "setup.h"
 #include "../../config.h"
 #include "../../pin_config.h"
@@ -104,28 +105,52 @@ extern WiFiSerialBridge wifiBridge;
 void setupMower() {
     // Inizializza la comunicazione seriale
     #ifdef SERIAL_DEBUG
+    delay(2000);
         SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
-        while (!SERIAL_DEBUG) {
-            ; // Attendi che la porta seriale sia connessa
-        }
-        SERIAL_DEBUG.println("Inizializzazione Robot Tagliaerba...");
+        SERIAL_DEBUG.println(F("Inizializzazione Robot Tagliaerba..."));
     #endif
 
     // Inizializza I2C
     Wire.begin();
+    #ifdef SERIAL_DEBUG
+    SERIAL_DEBUG.println(F("Wire OK"));   // subito dopo Wire.begin()
+    #endif
+    #ifdef ENABLE_DISPLAY
+    uint8_t bootStep = 0;
+    const uint8_t BOOT_TOTAL_STEPS = 10; // aggiorna qui se aggiungi altri passi
+    lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+    #endif
+
+    // Inizializza il display
+    #ifdef ENABLE_DISPLAY
+        lcdManager.begin();
+        lcdManager.showBootScreen();
+        // dopo aver mostrato lo schermo di boot consideriamo già completato il primo step
+        bootStep = 1; // progress 1/10
+        lcdManager.updateBootProgress(bootStep / (float)BOOT_TOTAL_STEPS);
+    #endif
     
     // Inizializza i pin
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH); // Accendi il LED durante l'inizializzazione
+    #ifdef ENABLE_DISPLAY
+    lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+    #endif
 
     // Inizializza il GPS
     #ifdef ENABLE_GPS
         gps.begin();
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza l'IMU
     #ifdef ENABLE_IMU
         imu.begin();
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza il monitor della batteria
@@ -138,23 +163,25 @@ void setupMower() {
         batteryMonitor.setConversionTime(CONV_TIME_1100);
         batteryMonitor.setMeasureMode(CONTINUOUS);
         batteryMonitor.setCorrectionFactor(0.95);
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza il controller dei motori
     #ifdef ENABLE_DRIVE_MOTORS
         motorController.begin();
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza il controller delle lame
     #ifdef ENABLE_BLADE_MOTORS
         bladeController.begin();
-    #endif
-
-    // Inizializza il display
-    #ifdef ENABLE_DISPLAY
-        lcdManager.begin();
-        // TODO: Implementare visualizzazione messaggio su LCD
-        // lcdManager.display("Robot Avviato");
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza il modulo WiFi
@@ -167,12 +194,18 @@ void setupMower() {
         #ifdef SERIAL_DEBUG
             SERIAL_DEBUG.println("WiFi Serial Bridge inizializzato");
         #endif
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza il buzzer
     #ifdef ENABLE_BUZZER
         buzzer.begin();
         buzzer.beep(1000, 100); // Breve beep di conferma (frequenza 1000Hz, durata 100ms)
+        #ifdef ENABLE_DISPLAY
+        lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
 
     // Inizializza i relay
@@ -188,6 +221,11 @@ void setupMower() {
 
     #ifdef SERIAL_DEBUG
         SERIAL_DEBUG.println("Inizializzazione completata");
+    #endif
+
+    #ifdef ENABLE_DISPLAY
+    lcdManager.updateBootProgress(1.0f); // Completa la barra di avanzamento
+    lcdManager.showSetupComplete();
     #endif
 
     // Spegni il LED di inizializzazione

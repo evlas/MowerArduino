@@ -5,6 +5,7 @@
 
 // Dichiarazione esterna di commandHandler
 #ifdef ENABLE_WIFI
+#include "../../src/communications/WiFiSerialBridge.h"
 #include "../../src/communications/CommandHandler.h"
 extern CommandHandler commandHandler;
 #endif
@@ -32,10 +33,13 @@ extern PerimeterSensors perimeterSensors;
 extern StateMachine mowerStateMachine;
 
 // Definizione delle variabili di tempo
-unsigned long lastBatteryUpdate = 0;
 unsigned long lastSensorUpdate = 0;
 unsigned long lastTelemetryUpdate = 0;
 unsigned long lastNavigationUpdate = 0;
+
+#ifdef ENABLE_BATTERY_MONITOR
+static unsigned long lastBatteryUpdate = 0;
+#endif
 
 // Variabili per la gestione degli errori
 static bool criticalError = false;
@@ -125,71 +129,58 @@ void loopMower() {
     } // Fine del blocco di aggiornamento sensori
     
     // 3. Aggiornamento della batteria (meno frequente)
+    #ifdef ENABLE_BATTERY_MONITOR
     if ((currentTime - lastBatteryUpdate) >= BATTERY_CHECK_INTERVAL) {
         lastBatteryUpdate = currentTime;
-        
-        #ifdef ENABLE_BATTERY_MONITOR
-            // Leggi lo stato della batteria con gestione degli errori
-            float voltage = 0.0f;
-            float current = 0.0f;
-            
-            // TODO: Implementare lettura batteria
-            // TODO: Implementare lettura batteria
-            // if (batteryMonitor.readAndClearFlags() & INA226_MEASUREMENT_READY) {
-            //     voltage = batteryMonitor.getBusVoltage();
-            //     current = batteryMonitor.getCurrent_mA();
-                
-                // Se la tensione è sotto la soglia critica, attiva l'emergenza
-                // TODO: Definire le soglie di tensione in config.h
-                const float BATTERY_CRITICAL_VOLTAGE = 10.5f;
-                const float BATTERY_LOW_VOLTAGE = 11.5f;
-                
-                if (voltage < BATTERY_CRITICAL_VOLTAGE) {
-                    mowerStateMachine.sendEvent(MowerEvent::EMERGENCY_STOP);
-                    ErrorManager::addError(ErrorCode::BATTERY_CRITICAL, 
-                                         String("Tensione critica: ") + String(voltage, 2) + "V");
-                } 
-                // Se la tensione è bassa ma non critica, torna alla base
-                else if (voltage < BATTERY_LOW_VOLTAGE) {
-                    if (mowerStateMachine.getCurrentState() != MowerState::RETURN_TO_BASE) {
-                        mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
-                        ErrorManager::addError(ErrorCode::BATTERY_LOW, 
-                                             String("Batteria scarica: ") + String(voltage, 2) + "V");
-                    }
-                }
-                // Se la batteria è sufficientemente carica, rimuovi eventuali errori di batteria
-                else if (voltage > BATTERY_LOW_VOLTAGE + 0.5f) { // Isteresi
-                    ErrorManager::removeError(ErrorCode::BATTERY_LOW);
-                    ErrorManager::removeError(ErrorCode::BATTERY_CRITICAL);
-                }
-                
-                #ifdef DEBUG_MODE
-                    SERIAL_DEBUG.print(F("Batteria: "));
-                    SERIAL_DEBUG.print(voltage, 2);
-                    SERIAL_DEBUG.print(F("V, "));
-                    SERIAL_DEBUG.print(current, 0);
-                    SERIAL_DEBUG.println(F("mA"));
-                #endif
-            // } else {
-            //     ErrorManager::addError(ErrorCode::BATTERY_ERROR, "Errore lettura batteria");
-            //     
-            //     #ifdef DEBUG_MODE
-            //         SERIAL_DEBUG.print(F("Errore: "));
-            //         SERIAL_DEBUG.print(ErrorManager::getLastError());
-            //         SERIAL_DEBUG.print(F(" - "));
-            //         SERIAL_DEBUG.println(ErrorManager::getLastErrorDescription());
-            //     #endif
-            // }
-        #endif
+
+        // Leggi lo stato della batteria con gestione degli errori
+        float voltage = 0.0f;
+        float current = 0.0f;
+
+        // TODO: Implementare lettura batteria
+        // if (batteryMonitor.readAndClearFlags() & INA226_MEASUREMENT_READY) {
+        //     voltage = batteryMonitor.getBusVoltage();
+        //     current = batteryMonitor.getCurrent_mA();
+
+        const float BATTERY_CRITICAL_VOLTAGE = 10.5f;
+        const float BATTERY_LOW_VOLTAGE = 11.5f;
+
+        if (voltage < BATTERY_CRITICAL_VOLTAGE) {
+            mowerStateMachine.sendEvent(MowerEvent::EMERGENCY_STOP);
+            ErrorManager::addError(ErrorCode::BATTERY_CRITICAL,
+                                   String("Tensione critica: ") + String(voltage, 2) + "V");
+        } else if (voltage < BATTERY_LOW_VOLTAGE) {
+            if (mowerStateMachine.getCurrentState() != MowerState::RETURN_TO_BASE) {
+                mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
+                ErrorManager::addError(ErrorCode::BATTERY_LOW,
+                                       String("Batteria scarica: ") + String(voltage, 2) + "V");
+            }
+        }
+        // }
     }
+    #endif
 
     // 4. Aggiornamento della macchina a stati
     mowerStateMachine.update();
     
     // 5. Gestione telemetria (se abilitata)
     #ifdef ENABLE_WIFI
-        // Aggiorna la telemetria se abilitata nel CommandHandler
-        commandHandler.updateTelemetry();
+        // Process incoming WiFi commands continuously
+        if (wifiBridge.available()) {
+            WiFiCommand cmd = wifiBridge.processIncoming();
+            #ifdef SERIAL_DEBUG
+                if (cmd.isValid) {
+                    SERIAL_DEBUG.print(F("[Loop] Received cmd: "));
+                    SERIAL_DEBUG.println(cmd.command);
+                }
+            #endif
+        }
+
+        // Send periodic telemetry
+        if (currentTime - lastTelemetryUpdate >= TELEMETRY_INTERVAL_MS) {
+            lastTelemetryUpdate = currentTime;
+            commandHandler.updateTelemetry();
+        }
     #endif
     
     // 6. Gestione del watchdog

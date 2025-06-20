@@ -98,8 +98,7 @@ void LCDManager::showBootScreen() {
     clearDisplay();
     _lcd.setCursor(0, 0);
     _lcd.print("Mower Arduino");
-    _lcd.setCursor(0, 1);
-    _lcd.print("Starting...");
+    // Mostra la barra di avanzamento sulla seconda riga
     showProgressBar(0.0f);
 }
 
@@ -135,6 +134,9 @@ void LCDManager::showRobotState() {
     _lcd.setCursor(0, 0);
     _lcd.print("Status:");
     
+    // Posiziona il testo dello stato sulla seconda riga
+    _lcd.setCursor(0, 1);
+    
     switch (_robotState.getState()) {
         case RobotState::IDLE:
             _lcd.print("Idle");
@@ -156,6 +158,12 @@ void LCDManager::showRobotState() {
             break;
         case RobotState::EMERGENCY:
             _lcd.print("Emergency!");
+            break;
+        case RobotState::MANUAL:
+            _lcd.print("Manual");
+            break;
+        case RobotState::RETURNING:
+            _lcd.print("Returning");
             break;
     }
 }
@@ -371,11 +379,18 @@ void LCDManager::showProgressBar(float progress) {
     int width = 16;  // Display width in characters
     int blocks = progress * width;
     
-    // Draw the progress bar
+    // Go to second row, clear then draw
+    _lcd.setCursor(0, 1);
+    for (int i = 0; i < width; i++) {
+        _lcd.print(" ");
+    }
+    _lcd.setCursor(0, 1);
     for (int i = 0; i < blocks; i++) {
-        _lcd.write(255);  // Full block character
+        _lcd.write((uint8_t)255);  // Full block character
     }
-    for (int i = blocks; i < width; i++) {
-        _lcd.print(" ");  // Empty spaces
-    }
+}
+
+void LCDManager::showSetupComplete() {
+    _lcd.setCursor(0, 1);
+    _lcd.print("Setup completo  "); // padding to overwrite bar
 }

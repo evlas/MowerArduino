@@ -15,6 +15,12 @@ extern BladeController bladeController;
 extern Relay relay;
 #endif
 
+// Includi la gestione del display
+#ifdef ENABLE_DISPLAY
+#include "../LCD/LCDManager.h"
+extern LCDManager lcdManager;
+#endif
+
 // Definizione dell'istanza globale della macchina a stati
 // Questa è l'unica definizione valida nel progetto
 StateMachine mowerStateMachine;
@@ -321,11 +327,11 @@ void StateMachine::executeStateActions() {
             // Se la base viene raggiunta, inviare l'evento CHARGING_COMPLETE
             break;
         case MowerState::BORDER_DETECTED:
-            // Esegui la manovra per allontanarsi dal bordo
+            // Ferma la navigazione e prepara la manovra
             borderDetectedActions();
             break;
         case MowerState::OBSTACLE_AVOIDANCE:
-            // Esegui la manovra per evitare l'ostacolo
+            // Ferma la navigazione e prepara la manovra di evitamento
             obstacleAvoidanceActions();
             break;
         default:
@@ -359,6 +365,37 @@ void StateMachine::onEnterState(MowerState newState) {
     }
     #endif
     
+    // Aggiorna il display con lo stato corrente
+    #ifdef ENABLE_DISPLAY
+    switch (newState) {
+        case MowerState::IDLE:
+            lcdManager.setRobotState(RobotState::IDLE);
+            break;
+        case MowerState::MANUAL_CONTROL:
+            lcdManager.setRobotState(RobotState::MANUAL);
+            break;
+        case MowerState::MOWING:
+            lcdManager.setRobotState(RobotState::RUNNING);
+            break;
+        case MowerState::RETURN_TO_BASE:
+            lcdManager.setRobotState(RobotState::RETURNING);
+            break;
+        case MowerState::CHARGING:
+            lcdManager.setRobotState(RobotState::CHARGING);
+            break;
+        case MowerState::ERROR:
+            lcdManager.setRobotState(RobotState::ERROR);
+            break;
+        case MowerState::EMERGENCY_STOP:
+            lcdManager.setRobotState(RobotState::EMERGENCY);
+            break;
+        case MowerState::BORDER_DETECTED:
+        case MowerState::OBSTACLE_AVOIDANCE:
+            lcdManager.setRobotState(RobotState::RUNNING);
+            break;
+    }
+    #endif
+
     // Gestione specifica per ogni stato
     switch (newState) {
         case MowerState::IDLE:

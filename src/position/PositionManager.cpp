@@ -284,7 +284,11 @@ void PositionManager::enableOdometry(bool enable) {
 void PositionManager::enableIMU(bool enable) {
     _isIMUEnabled = enable;
     if (enable) {
+#ifdef ENABLE_IMU
         _imu = &imu;
+#else
+        _imu = nullptr; // IMU non disponibile
+#endif
     } else {
         _imu = nullptr;
     }
@@ -293,7 +297,11 @@ void PositionManager::enableIMU(bool enable) {
 void PositionManager::enableGPS(bool enable) {
     _isGPSEnabled = enable;
     if (enable) {
+#ifdef ENABLE_GPS
         _gps = &gps;
+#else
+        _gps = nullptr; // GPS non disponibile
+#endif
     } else {
         _gps = nullptr;
     }

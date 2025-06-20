@@ -38,15 +38,15 @@
 
 // --- SENSORI ---
 #define ENABLE_ODOMETRY
-#define ENABLE_IMU              // IMU per orientamento
+//#define ENABLE_IMU              // IMU per orientamento
 #define MPU6050_ADDRESS 0x68
 #define ENABLE_RTC              // RTC per orologio
-#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
-#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
+//#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
+//#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
 #define SERIAL_GPS_BAUD 115200
 //#define ENABLE_PERIMETER        // Sensore filo perimetrale
 #define PERIMETER_SIGNAL_THRESHOLD 100  // Soglia di rilevamento del segnale del perimetro
-#define ENABLE_ULTRASONIC         // Sensore ultrasonico per rilevamento ostacoli
+//#define ENABLE_ULTRASONIC         // Sensore ultrasonico per rilevamento ostacoli
 #define ENABLE_BUMP_SENSORS       // Sensori di urto meccanici
 //#define ENABLE_RAIN_SENSOR      // Sensore pioggia
 
@@ -134,10 +134,8 @@
 // ========================
 
 // --- SOGLIE SENSORI ---
-#ifdef ENABLE_ULTRASONIC
 #define OBSTACLE_DISTANCE_THRESHOLD 30  // cm
 #define MAX_ULTRASONIC_DISTANCE 200     // cm
-#endif
 
 #ifdef ENABLE_BATTERY_MONITOR
 #define BATTERY_MONITOR_ADDRESS 0x40
@@ -220,6 +218,10 @@
 // --- COMUNICAZIONE ---
 #ifdef ENABLE_WIFI
 #define WIFI_TIMEOUT 10000  // Timeout connessione (ms)
+// Intervallo minimo tra due invii di telemetria (ms)
+#ifndef TELEMETRY_INTERVAL_MS
+#define TELEMETRY_INTERVAL_MS 1000
+#endif
 #endif
 
 // ========================

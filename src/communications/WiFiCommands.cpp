@@ -98,6 +98,10 @@ void handleWiFiCommand(const String& command, const JsonVariant& params) {
         cmdHandler->stopBlade();
         if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Blade stopped");
     }
+    else if (command == "returnToBase") {
+        cmdHandler->returnToBase();
+        if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Returning to base");
+    }
     else if (command == "getStatus") {
         // Invia lo stato attuale come risposta
         StaticJsonDocument<256> status;
@@ -108,6 +112,19 @@ void handleWiFiCommand(const String& command, const JsonVariant& params) {
         status["batteryLevel"] = 0.0f; // Battery monitoring not enabled
         #endif
         if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Current status", status);
+    }
+    else if (command == "enableTelemetry") {
+        uint32_t interval = 1000;
+        if (params.containsKey("interval")) {
+            interval = params["interval"].as<uint32_t>();
+        }
+        cmdHandler->enableTelemetry(true);
+        cmdHandler->setTelemetryInterval(interval);
+        if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Telemetry enabled");
+    }
+    else if (command == "disableTelemetry") {
+        cmdHandler->enableTelemetry(false);
+        if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Telemetry disabled");
     }
     else {
         // Comando non riconosciuto

@@ -1,3 +1,6 @@
+#include "../../config.h"
+#include "../../pin_config.h"
+
 #ifdef ENABLE_PERIMETER
 #include "PerimeterSensors.h"
 
@@ -12,13 +15,15 @@ PerimeterSensors::~PerimeterSensors() {
 }
 
 void PerimeterSensors::begin() {
-    pinMode(PERIMETER_RX_PIN, INPUT);
-    pinMode(PERIMETER_TX_PIN, OUTPUT);
-    digitalWrite(PERIMETER_TX_PIN, LOW);
+    // Entrambi i pin del filo perimetrale sono ingressi analogici
+    pinMode(PERIMETER_SX_WIRE_PIN, INPUT);
+    pinMode(PERIMETER_DX_WIRE_PIN, INPUT);
 }
 
 void PerimeterSensors::update() {
-    _signalStrength = analogRead(PERIMETER_RX_PIN);
+    int sx = analogRead(PERIMETER_SX_WIRE_PIN);
+    int dx = analogRead(PERIMETER_DX_WIRE_PIN);
+    _signalStrength = max(sx, dx);  // usa il segnale più forte
 }
 
 bool PerimeterSensors::isDetected() const {

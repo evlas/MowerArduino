@@ -92,6 +92,9 @@ private:
     WiFiCommand _parseCommand(const String& jsonString);
 };
 
+// Rendi disponibile l'istanza globale definita nel file .cpp
+extern WiFiSerialBridge wifiBridge;
+
 #else
 
 // Definizione stub quando il WiFi è disabilitato
@@ -115,9 +118,6 @@ public:
     
     static StaticJsonDocument<0> emptyDoc;
 };
-
-// Dichiarazione della variabile globale
-extern WiFiSerialBridge wifiBridge;
 
 #endif // ENABLE_WIFI
 

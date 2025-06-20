@@ -10,7 +10,13 @@ MotorController::MotorController(float diameter, float base, float ticks) {
     
     // Inizializza l'odometria con i valori forniti
     initializeOdometry(diameter, base, ticks);
-    resetOdometry();
+
+    // Imposta variabili odometriche a valori iniziali; i motori non sono
+    // ancora creati, quindi non possiamo leggere le loro posizioni.
+    _x = _y = _theta = 0.0f;
+    _lastLeftPos = 0.0f;
+    _lastRightPos = 0.0f;
+    _lastUpdate = 0;
 }
 
 MotorController::~MotorController() {

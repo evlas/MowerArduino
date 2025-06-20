@@ -47,6 +47,8 @@ class RobotState {
             IDLE,
             STARTING,
             RUNNING,
+            MANUAL,
+            RETURNING,
             STOPPED,
             ERROR,
             CHARGING,
@@ -105,6 +107,11 @@ class LCDManager {
          * @param progress Progress value between 0.0 and 1.0
          */
         void updateBootProgress(float progress);
+        
+        /**
+         * @brief Show message when setup is finished (second row)
+         */
+        void showSetupComplete();
         
         /**
          * @brief Set the robot's current state and update the display.
