@@ -68,6 +68,7 @@ public:
     void handleMowingState(MowerEvent event);
     void handleManualControlState(MowerEvent event);
     void handleReturnToBaseState(MowerEvent event);
+    void handleChargingState(MowerEvent event);
     void handleEmergencyStopState(MowerEvent event);
     void handleRecoveryState(MowerEvent event);
     void handleDefaultState(MowerEvent event);

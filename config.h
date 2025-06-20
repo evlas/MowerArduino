@@ -41,7 +41,7 @@
 //#define ENABLE_IMU              // IMU per orientamento
 #define MPU6050_ADDRESS 0x68
 #define ENABLE_RTC              // RTC per orologio
-//#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
+#define ENABLE_BATTERY_MONITOR  // Monitor tensione/corrente batteria
 //#define ENABLE_GPS              // Sensore GPS (commenta se non presente)
 #define SERIAL_GPS_BAUD 115200
 //#define ENABLE_PERIMETER        // Sensore filo perimetrale
@@ -141,17 +141,19 @@
 #define BATTERY_MONITOR_ADDRESS 0x40
 #define BATTERY_UPDATE_INTERVAL 1000  // Aggiornamento ogni 1 secondo
 
-
+#define BATTERY_CELLS          7
 #define BATTERY_SHUNT_RESISTOR 0.1  // 0.1 Ohm
-#define BATTERY_MAX_VOLTAGE 7*BATTERY_FULL_VOLTAGE   // V
+#define BATTERY_MAX_VOLTAGE BATTERY_CELLS*BATTERY_FULL_VOLTAGE   // V
 #define BATTERY_MAX_CURRENT 3.2     // A
 
-#define LOW_BATTERY_THRESHOLD 7*BATTERY_LOW_THRESHOLD   // V
-#define FULL_BATTERY_VOLTAGE 7*BATTERY_FULL_VOLTAGE    // V
+#define LOW_BATTERY_THRESHOLD BATTERY_CELLS*BATTERY_LOW_THRESHOLD   // V
+#define FULL_BATTERY_VOLTAGE BATTERY_CELLS*BATTERY_FULL_VOLTAGE    // V
+#define BATTERY_RECHARGING BATTERY_CELLS*BATTERY_RECHARGE_VOLTAGE    // V
 #define BATTERY_VOLTAGE_DIVIDER 5.0  // Rapporto partitore tensione
 
 // Battery parameters
-#define BATTERY_FULL_VOLTAGE 4.2     // V
+#define BATTERY_RECHARGE_VOLTAGE 4.2
+#define BATTERY_FULL_VOLTAGE 4.16     // V
 #define BATTERY_EMPTY_VOLTAGE 3.2    // V
 #define BATTERY_LOW_THRESHOLD 3.5    // V
 #define BATTERY_CHECK_INTERVAL 1000  // ms

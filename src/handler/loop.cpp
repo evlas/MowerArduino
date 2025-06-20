@@ -17,6 +17,7 @@ extern CommandHandler commandHandler;
 
 #ifdef ENABLE_BATTERY_MONITOR
 #include <INA226_WE.h>
+extern INA226_WE batteryMonitor;
 #endif
 
 #ifdef ENABLE_ULTRASONIC
@@ -137,19 +138,28 @@ void loopMower() {
         float voltage = 0.0f;
         float current = 0.0f;
 
-        // TODO: Implementare lettura batteria
-        // if (batteryMonitor.readAndClearFlags() & INA226_MEASUREMENT_READY) {
-        //     voltage = batteryMonitor.getBusVoltage();
-        //     current = batteryMonitor.getCurrent_mA();
+        // Lettura batteria
+        voltage = batteryMonitor.getBusVoltage_V();
+        current = batteryMonitor.getCurrent_mA();
 
-        const float BATTERY_CRITICAL_VOLTAGE = 10.5f;
-        const float BATTERY_LOW_VOLTAGE = 11.5f;
+        const float BATTERY_CRITICAL_VOLTAGE = BATTERY_EMPTY_VOLTAGE * BATTERY_CELLS; // soglia pack batteria scarica
+        const float BATTERY_LOW_VOLTAGE = BATTERY_LOW_THRESHOLD * BATTERY_CELLS; // soglia pack batteria bassa
 
-        if (voltage < BATTERY_CRITICAL_VOLTAGE) {
+        // Informa la state-machine se collegato alla base di ricarica
+        if (voltage >= BATTERY_RECHARGING && mowerStateMachine.getCurrentState() != MowerState::CHARGING) {
+            mowerStateMachine.sendEvent(MowerEvent::CHARGING_COMPLETE);
+        }
+        // Se è in carica e la tensione scende a FULL_BATTERY_VOLTAGE, passa in docking
+        if (mowerStateMachine.getCurrentState() == MowerState::CHARGING && voltage <= FULL_BATTERY_VOLTAGE) {
+            mowerStateMachine.sendEvent(MowerEvent::RETURN_TO_BASE);
+        }
+
+        // Ignores invalid reading (0V) that sometimes appears at start
+        if (voltage > 0.1f && voltage < BATTERY_CRITICAL_VOLTAGE) {
             mowerStateMachine.sendEvent(MowerEvent::EMERGENCY_STOP);
             ErrorManager::addError(ErrorCode::BATTERY_CRITICAL,
                                    String("Tensione critica: ") + String(voltage, 2) + "V");
-        } else if (voltage < BATTERY_LOW_VOLTAGE) {
+        } else if (voltage > 0.1f && voltage < BATTERY_LOW_VOLTAGE) {
             if (mowerStateMachine.getCurrentState() != MowerState::RETURN_TO_BASE) {
                 mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
                 ErrorManager::addError(ErrorCode::BATTERY_LOW,
@@ -180,6 +190,29 @@ void loopMower() {
         if (currentTime - lastTelemetryUpdate >= TELEMETRY_INTERVAL_MS) {
             lastTelemetryUpdate = currentTime;
             commandHandler.updateTelemetry();
+        }
+
+        // Send periodic status (isMowing, isCharging, battery, state)
+        static unsigned long lastStatusUpdate = 0;
+        const uint32_t STATUS_INTERVAL_MS = 1000;
+        if (currentTime - lastStatusUpdate >= STATUS_INTERVAL_MS) {
+            lastStatusUpdate = currentTime;
+            StaticJsonDocument<128> statusDoc;
+            statusDoc["isMowing"] = mowerStateMachine.isMowing();
+            bool isChargingFlag = (mowerStateMachine.getCurrentState() == MowerState::CHARGING);
+            #ifdef ENABLE_BATTERY_MONITOR
+                float battVolt = batteryMonitor.getBusVoltage_V();
+                isChargingFlag = (battVolt >= BATTERY_RECHARGING);
+                const float PACK_MIN_VOLT = BATTERY_EMPTY_VOLTAGE * BATTERY_CELLS;   // e.g. 3.2*3 = 9.6V
+                const float PACK_MAX_VOLT = BATTERY_FULL_VOLTAGE * BATTERY_CELLS;   // e.g. 4.16*3 ≈ 12.48V
+                uint8_t battLevel = (uint8_t)constrain(map(battVolt * 1000, PACK_MIN_VOLT * 1000, PACK_MAX_VOLT * 1000, 0, 100), 0, 100);
+                JsonObject batt = statusDoc.createNestedObject("battery");
+                batt["voltage"] = battVolt;
+                batt["level"] = battLevel;
+            #endif
+            statusDoc["isCharging"] = isChargingFlag;
+            statusDoc["state"] = static_cast<int>(mowerStateMachine.getCurrentState());
+            wifiBridge.sendTelemetry(statusDoc);
         }
     #endif
     

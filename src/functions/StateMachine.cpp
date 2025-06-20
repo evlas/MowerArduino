@@ -3,6 +3,11 @@
 #include "../../config.h"
 #include <Arduino.h>
 
+#ifdef ENABLE_BATTERY_MONITOR
+#include <INA226_WE.h>
+extern INA226_WE batteryMonitor;
+#endif
+
 // Dichiarazione delle istanze esterne
 extern Navigation navigation;
 #ifdef ENABLE_BLADE_MOTORS
@@ -132,6 +137,10 @@ void StateMachine::handleEvent(MowerEvent event) {
             handleReturnToBaseState(event);
             break;
             
+        case MowerState::CHARGING:
+            handleChargingState(event);
+            break;
+            
         case MowerState::EMERGENCY_STOP:
             handleEmergencyStopState(event);
             break;
@@ -250,6 +259,27 @@ void StateMachine::handleReturnToBaseState(MowerEvent event) {
             
         default:
             // Evento non gestito per questo stato
+            break;
+    }
+}
+
+void StateMachine::handleChargingState(MowerEvent event) {
+    switch (event) {
+        case MowerEvent::BATTERY_CHARGED:
+            // Batteria completamente carica, torna in stato IDLE
+            handleStateTransition(MowerState::IDLE);
+            break;
+            
+        case MowerEvent::EMERGENCY_STOP:
+            handleStateTransition(MowerState::EMERGENCY_STOP);
+            break;
+            
+        case MowerEvent::MANUAL_MODE:
+            handleStateTransition(MowerState::MANUAL_CONTROL);
+            break;
+            
+        default:
+            // Ignora altri eventi
             break;
     }
 }
@@ -509,10 +539,12 @@ void StateMachine::returnToBaseActions() {
 
 void StateMachine::chargingActions() {
     // Verifica lo stato della carica
-    // (da implementare con il gestore della batteria)
-    
-    // Se la batteria è carica, torna in modalità di attesa
-    // sendEvent(MowerEvent::BATTERY_CHARGED);
+    #ifdef ENABLE_BATTERY_MONITOR
+    float voltage = batteryMonitor.getBusVoltage_V();
+    if (voltage >= FULL_BATTERY_VOLTAGE) {
+        sendEvent(MowerEvent::BATTERY_CHARGED);
+    }
+    #endif
 }
 
 void StateMachine::errorActions() {

@@ -388,9 +388,11 @@ void LCDManager::showProgressBar(float progress) {
     for (int i = 0; i < blocks; i++) {
         _lcd.write((uint8_t)255);  // Full block character
     }
+    delay(50);  // wait 1/20 second to make progress visible
 }
 
 void LCDManager::showSetupComplete() {
     _lcd.setCursor(0, 1);
     _lcd.print("Setup completo  "); // padding to overwrite bar
+    delay(5000);  // wait 1/20 second to make progress visible
 }
