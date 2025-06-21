@@ -1,28 +1,45 @@
 #include "Navigation.h"
+#include "../motors/MotorController.h"
+#include "../position/PositionManager.h"
+#include "Maneuver.h"
 
-// Includi l'header completo solo se necessario
-#ifdef ENABLE_PERIMETER
-#include "../../src/sensors/PerimeterSensors.h"
+// Include condizionali dei sensori
+#ifdef ENABLE_ULTRASONIC
+#include "../sensors/UltrasonicSensors.h"
 #endif
 
+#ifdef ENABLE_BUMP_SENSORS
+#include "../sensors/BumpSensors.h"
+#endif
+
+// Includi PerimeterSensors.h all'inizio per garantire che la classe sia completamente definita
+// quando viene usata nei metodi
 #ifdef ENABLE_PERIMETER
+#include "../sensors/PerimeterSensors.h"
+#endif
+
 Navigation::Navigation(Maneuver* maneuver, 
-                     UltrasonicSensors* ultrasonic, 
-                     BumpSensors* bumper, 
-                     PerimeterSensors* perimeter, 
-                     PositionManager* positionManager) :
+#ifdef ENABLE_ULTRASONIC
+                     UltrasonicSensors* ultrasonic,
 #else
-Navigation::Navigation(Maneuver* maneuver, 
-                     UltrasonicSensors* ultrasonic, 
-                     BumpSensors* bumper, 
-                     void* perimeter, 
-                     PositionManager* positionManager) :
+                     void* ultrasonic,
 #endif
+#ifdef ENABLE_BUMP_SENSORS
+                     BumpSensors* bumper,
+#else
+                     void* bumper,
+#endif
+#ifdef ENABLE_PERIMETER
+                     PerimeterSensors* perimeter,
+#else
+                     void* perimeter,
+#endif
+                     PositionManager* positionManager) :
+    _positionManager(positionManager),
     _maneuver(maneuver),
     _ultrasonic(ultrasonic),
     _bumper(bumper),
-    _perimeter(static_cast<decltype(_perimeter)>(perimeter)),
-    _positionManager(*positionManager),  // Initialize with passed PositionManager
+    _perimeter(perimeter),
     _mode(),  // Initialize with default constructor
     _isNavigating(false),
     _bladeWidth(BLADE_WIDTH),
@@ -33,22 +50,13 @@ Navigation::Navigation(Maneuver* maneuver,
     _currentRing(0),
     _currentRadius(0.0f)
 {
-    // Initialize PositionManager
-    _positionManager.begin();
-    _positionManager.enableOdometry(true);
-    _positionManager.enableIMU(true);
-    _positionManager.enableGPS(true);
-    
-    // Initialize perimeter if available
-#ifdef ENABLE_PERIMETER
-    if (_perimeter != nullptr) {
-        _perimeter->begin();
+    // Initialize PositionManager if available
+    if (_positionManager != nullptr) {
+        _positionManager->begin();
+        _positionManager->enableOdometry(true);
+        _positionManager->enableIMU(true);
+        _positionManager->enableGPS(true);
     }
-#endif
-}
-
-Navigation::~Navigation() {
-    // Null
 }
 
 void Navigation::begin() {
@@ -58,6 +66,30 @@ void Navigation::begin() {
     _currentAngle = 0.0f;
     _currentRing = 0;
     _currentRadius = 0.0f;
+
+    // Inizializza i sensori se disponibili
+#ifdef ENABLE_ULTRASONIC
+    if (_ultrasonic != nullptr) {
+        _ultrasonic->begin();
+    }
+#endif
+
+#ifdef ENABLE_BUMP_SENSORS
+    if (_bumper != nullptr) {
+        _bumper->begin();
+    }
+#endif
+
+#ifdef ENABLE_PERIMETER
+    if (_perimeter != nullptr) {
+        _perimeter->begin();
+    }
+#endif
+}
+
+Navigation::~Navigation() {
+    // We don't delete _positionManager here as we don't own it
+    // The owner of Navigation should handle the PositionManager's lifetime
 }
 
 void Navigation::update() {
@@ -175,7 +207,7 @@ void Navigation::navigateSpiral() {
     float targetRadius = (_currentRing * SPIRAL_RADIUS_STEP + SPIRAL_START_RADIUS) / 100.0f;
     
     // Ottieni la posizione corrente dal PositionManager
-    RobotPosition pos = _positionManager.getPosition();
+    RobotPosition pos = _positionManager->getPosition();
     float x = pos.x;
     float y = pos.y;
     
@@ -199,12 +231,20 @@ void Navigation::navigateSpiral() {
 
 // Gestione degli ostacoli
 bool Navigation::checkObstacles() {
+    // Controlla i sensori ad ultrasuoni
+#ifdef ENABLE_ULTRASONIC
     if (_ultrasonic != nullptr && _ultrasonic->isObstacleDetected(OBSTACLE_DISTANCE_THRESHOLD)) {
         return true;
     }
+#endif
+    
+    // Controlla i sensori di urto
+#ifdef ENABLE_BUMP_SENSORS
     if (_bumper != nullptr && (_bumper->isLeftBump() || _bumper->isRightBump() || _bumper->isCenterBump())) {
         return true;
     }
+#endif
+    
     return false;
 }
 
@@ -228,27 +268,31 @@ void Navigation::handleObstacle() {
 
 // Gestione del perimetro
 bool Navigation::checkPerimeter() {
-    // Se il perimetro è disabilitato o non inizializzato, restituisci false
+    // Se il perimetro è disabilitato a tempo di compilazione, restituisci false
+#ifndef ENABLE_PERIMETER
+    return false;
+#else
+    // Se il perimetro non è inizializzato, restituisci false
     if (_perimeter == nullptr) {
         return false;
     }
     
-#ifdef ENABLE_PERIMETER
-    // Il perimetro è abilitato, possiamo usare il puntatore
+    // Il perimetro è abilitato e inizializzato, possiamo usare il puntatore
     return _perimeter->isDetected();
-#else
-    return false;  // Perimetro disabilitato a tempo di compilazione
 #endif
 }
 
 void Navigation::handlePerimeter() {
-    // Se il perimetro è disabilitato o non inizializzato, non fare nulla
+    // Se il perimetro è disabilitato a tempo di compilazione, esci subito
+#ifndef ENABLE_PERIMETER
+    return;
+#else
+    // Se il perimetro non è inizializzato, esci
     if (_perimeter == nullptr) {
         return;
     }
     
-#ifdef ENABLE_PERIMETER
-    // Il perimetro è abilitato, possiamo procedere con la gestione
+    // Il perimetro è abilitato e inizializzato, possiamo procedere con la gestione
     // Ferma il robot
     _maneuver->stop();
     delay(500); // Pausa per sicurezza

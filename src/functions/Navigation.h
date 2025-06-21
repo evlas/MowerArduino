@@ -4,17 +4,17 @@
 #include <Arduino.h>
 #include "../../config.h"  // Deve essere incluso per primi per definire ENABLE_PERIMETER
 
-// Forward declaration per evitare dipendenze circolari
-#ifdef ENABLE_PERIMETER
-class PerimeterSensors;
-#endif
+// Forward declarations
+class MotorController;
+class BladeController;
+class Maneuver;
+class PositionManager;
 
-#include "../motors/MotorController.h"
-#include "../motors/BladeController.h"
-#include "../sensors/UltrasonicSensors.h"
-#include "../sensors/BumpSensors.h"
-#include "Maneuver.h"
-#include "../position/PositionManager.h"
+// Forward declarations for sensors
+class UltrasonicSensors;
+class BumpSensors;
+class PerimeterSensors;
+
 
 // Definizione del modo di navigazione
 class NavigationMode {
@@ -34,19 +34,23 @@ class NavigationMode {
 
 class Navigation {
     public:
-#ifdef ENABLE_PERIMETER
         Navigation(Maneuver* maneuver, 
-                 UltrasonicSensors* ultrasonic, 
-                 BumpSensors* bumper, 
-                 PerimeterSensors* perimeter,
-                 PositionManager* positionManager);
+#ifdef ENABLE_ULTRASONIC
+                 UltrasonicSensors* ultrasonic,
 #else
-        Navigation(Maneuver* maneuver, 
-                 UltrasonicSensors* ultrasonic, 
-                 BumpSensors* bumper, 
-                 void* perimeter,  // Dummy parameter when perimeter is disabled
-                 PositionManager* positionManager);
+                 void* ultrasonic,
 #endif
+#ifdef ENABLE_BUMP_SENSORS
+                 BumpSensors* bumper,
+#else
+                 void* bumper,
+#endif
+#ifdef ENABLE_PERIMETER
+                 PerimeterSensors* perimeter,
+#else
+                 void* perimeter,
+#endif
+                 PositionManager* positionManager);
         ~Navigation();
         
         // Inizializzazione
@@ -64,15 +68,11 @@ class Navigation {
         
     private:
         // Componenti
-        PositionManager _positionManager;
+        PositionManager* _positionManager;
         Maneuver* _maneuver;
         UltrasonicSensors* _ultrasonic;
         BumpSensors* _bumper;
-#ifdef ENABLE_PERIMETER
         PerimeterSensors* _perimeter;
-#else
-        void* _perimeter;  // Dummy pointer when perimeter is disabled
-#endif
         
         // Stato
         NavigationMode _mode;

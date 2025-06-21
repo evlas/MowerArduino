@@ -1,10 +1,13 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
-#include "../functions/StateMachine.h"
-#include "../functions/Navigation.h"
-#include "Telemetry.h"
 #include "../../config.h"  // Include le costanti di velocità
+#include <Arduino.h>
+#include "Telemetry.h"
+
+// Forward declarations
+class StateMachine;
+class Navigation;
 
 #define MIN_ANGLE 1.0f
 #define MAX_ANGLE 360.0f

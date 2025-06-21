@@ -1,4 +1,5 @@
 #include "Maneuver.h"
+#include "../motors/MotorController.h"
 
 Maneuver::Maneuver(MotorController* motorController) :
     motorController(motorController),

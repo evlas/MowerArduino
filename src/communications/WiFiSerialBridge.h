@@ -8,15 +8,15 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+// Forward declarations
+class CommandHandler;
+
 // Struttura per i comandi ricevuti
 struct WiFiCommand {
     String command;
     JsonVariant params;
     bool isValid;
 };
-
-// Forward declaration per la classe CommandHandler
-class CommandHandler;
 
 class WiFiSerialBridge {
 public:

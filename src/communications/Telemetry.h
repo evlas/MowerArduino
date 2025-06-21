@@ -2,9 +2,15 @@
 #define TELEMETRY_H
 
 #include <Arduino.h>
-#include "../functions/StateMachine.h"
-#include "../functions/Navigation.h"
-#include "../position/PositionManager.h"
+
+// Forward declarations
+class StateMachine;
+class Navigation;
+class PositionManager;
+
+// Importa solo gli enum necessari
+#include "../functions/StateMachine.h"  // Per MowerState
+#include "../functions/Navigation.h"    // Per NavigationMode
 
 // Struttura per i dati di telemetria
 struct TelemetryData {

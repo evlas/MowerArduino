@@ -2,7 +2,9 @@
 #define MANEUVER_H
 
 #include "Arduino.h"
-#include "../motors/MotorController.h"
+
+// Forward declarations
+class MotorController;
 
 class Maneuver {
   public:

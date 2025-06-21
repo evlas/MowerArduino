@@ -1,5 +1,8 @@
 #include "Telemetry.h"
 #include <ArduinoJson.h>
+#include "../../src/functions/StateMachine.h"
+#include "../../src/functions/Navigation.h"
+#include "../../src/position/PositionManager.h"
 
 Telemetry::Telemetry(StateMachine* stateMachine, Navigation* navigation, PositionManager* positionManager)
     : _stateMachine(stateMachine), _navigation(navigation), _positionManager(positionManager) {
