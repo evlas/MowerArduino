@@ -79,13 +79,10 @@ class Navigation {
         bool _isNavigating;
         
         // Parametri di navigazione
-        float _bladeWidth;
         float _currentDistance;
         float _targetDistance;
         float _currentAngle;
         float _targetAngle;
-        int _currentRing;
-        float _currentRadius;
         
         // Funzioni di navigazione
         void navigateRandom();

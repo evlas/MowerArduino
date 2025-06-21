@@ -1,4 +1,16 @@
 #include "Navigation.h"
+#include <Arduino.h>
+
+// Struttura per la lettura IMU
+#ifdef ENABLE_IMU
+struct IMUReading {
+    float yaw;
+    float pitch;
+    float roll;
+    bool isValid;
+};
+#endif
+
 #include "../motors/MotorController.h"
 #include "../position/PositionManager.h"
 #include "Maneuver.h"
@@ -37,20 +49,16 @@ Navigation::Navigation(Maneuver* maneuver,
                      PositionManager* positionManager) :
     _positionManager(positionManager),
     _maneuver(maneuver),
-    _ultrasonic(ultrasonic),
-    _bumper(bumper),
-    _perimeter(perimeter),
-    _mode(),  // Initialize with default constructor
+    _ultrasonic(reinterpret_cast<UltrasonicSensors*>(ultrasonic)),
+    _bumper(reinterpret_cast<BumpSensors*>(bumper)),
+    _perimeter(reinterpret_cast<PerimeterSensors*>(perimeter)),
+    _mode(),
     _isNavigating(false),
-    _bladeWidth(BLADE_WIDTH),
     _currentDistance(0.0f),
     _targetDistance(0.0f),
     _currentAngle(0.0f),
-    _targetAngle(0.0f),
-    _currentRing(0),
-    _currentRadius(0.0f)
-{
-    // Initialize PositionManager if available
+    _targetAngle(0.0f) {
+    // Inizializza PositionManager se disponibile
     if (_positionManager != nullptr) {
         _positionManager->begin();
         _positionManager->enableOdometry(true);
@@ -64,8 +72,6 @@ void Navigation::begin() {
     _isNavigating = false;
     _currentDistance = 0.0f;
     _currentAngle = 0.0f;
-    _currentRing = 0;
-    _currentRadius = 0.0f;
 
     // Inizializza i sensori se disponibili
 #ifdef ENABLE_ULTRASONIC
@@ -94,9 +100,55 @@ Navigation::~Navigation() {
 
 void Navigation::update() {
     // Controlla ostacoli e perimetro
-    if (checkObstacles() || (_perimeter != nullptr && checkPerimeter())) {
+    bool obstacleDetected = checkObstacles();
+    bool perimeterBreached = (_perimeter != nullptr) ? checkPerimeter() : false;
+    
+    if (obstacleDetected || perimeterBreached) {
         handleObstacle();
         return;
+    }
+    
+    // Controlla l'errore di direzione se abbiamo un target angolare
+    if (_positionManager != nullptr && _isNavigating) {
+        // Ottieni la posizione corrente dal PositionManager
+        RobotPosition currentPos = _positionManager->getPosition();
+        float currentHeading = currentPos.theta;  // theta è già in radianti
+        bool hasHeading = currentPos.isValid;
+        
+        // Se non abbiamo una posizione valida, usiamo una stima basata sull'odometria
+        if (!hasHeading && _maneuver != nullptr) {
+            // Stima approssimativa basata sull'odometria
+            static float estimatedHeading = 0.0f;
+            float angularVelocity = _maneuver->getAngularVelocity();
+            static unsigned long lastUpdate = millis();
+            unsigned long currentTime = millis();
+            float deltaTime = (currentTime - lastUpdate) / 1000.0f; // in secondi
+            lastUpdate = currentTime;
+            
+            estimatedHeading += angularVelocity * deltaTime;
+            // Normalizza tra -PI e PI
+            while (estimatedHeading > PI) estimatedHeading -= TWO_PI;
+            while (estimatedHeading < -PI) estimatedHeading += TWO_PI;
+            
+            currentHeading = estimatedHeading;
+            hasHeading = true;
+        }
+        
+        if (hasHeading) {
+            float headingError = atan2(sin(_targetAngle - currentHeading), 
+                                    cos(_targetAngle - currentHeading));
+                                      
+            if (abs(headingError) > HEADING_TOLERANCE) {
+                // Correggi la direzione con una rotazione proporzionale all'errore
+                float rotationSpeed = constrain(headingError * 0.5f, -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED);
+                if (_maneuver != nullptr) {
+                    // Converti la velocità angolare in un valore di velocità percentuale (0-100)
+                    int speedPercent = static_cast<int>(map(abs(rotationSpeed), 0, MAX_ANGULAR_SPEED, 20, 80));
+                    _maneuver->rotate(rotationSpeed > 0 ? 90 : -90, speedPercent);
+                }
+                return;  // Aspetta che la direzione sia corretta
+            }
+        }
     }
     
     // Se non stiamo navigando, esce
@@ -158,8 +210,8 @@ void Navigation::navigateRandom() {
         // Calcola un angolo casuale
         _targetAngle = random(RANDOM_TURN_MIN_ANGLE, RANDOM_TURN_MAX_ANGLE);
         
-        // Gira di quell'angolo
-        _maneuver->rotate(_targetAngle);
+        // Gira di quell'angolo con velocità media (50%)
+        _maneuver->rotate(static_cast<int>(_targetAngle), 50);
         
         // Resetta la distanza
         _currentDistance = 0.0f;
@@ -169,83 +221,96 @@ void Navigation::navigateRandom() {
 
 // Navigazione a linee parallele
 void Navigation::navigateParallel() {
-    if (!_isNavigating) {
-        // Imposta la distanza target per la linea successiva
-        _targetDistance = _bladeWidth; // larghezza lame
-        _isNavigating = true;
-    }
-    
-    // Muovi in linea retta
-    _maneuver->forward();
-    
-    // Aggiorna la distanza percorsa
-    _currentDistance += _maneuver->getLinearVelocity() / 100.0f; // converti cm/s in m/s
-    
-    if (_currentDistance >= _targetDistance) {
-        // Quando arrivi alla fine della linea
-        _maneuver->stop();
+    // Naviga in linea retta a velocità ridotta quando ci si avvicina alla fine
+    if (_positionManager != nullptr && _maneuver != nullptr) {
+        // Stima la distanza percorsa in base al tempo e alla velocità
+        static unsigned long lastUpdate = millis();
+        unsigned long currentTime = millis();
+        float deltaTime = (currentTime - lastUpdate) / 1000.0f; // in secondi
+        lastUpdate = currentTime;
         
-        // Gira di 90 gradi per posizionarsi per la linea successiva
-        _maneuver->rotate(PARALLEL_TURN_ANGLE);
+        // Usa la velocità media dei due motori se disponibile
+        float currentSpeed = 0.0f;
+        if (_maneuver != nullptr) {
+            float leftSpeed = _maneuver->getLeftSpeed();
+            float rightSpeed = _maneuver->getRightSpeed();
+            currentSpeed = (leftSpeed + rightSpeed) * 0.5f; // Velocità media
+        }
+        _currentDistance += currentSpeed * deltaTime;
         
-        // Resetta la distanza
-        _currentDistance = 0.0f;
-        _isNavigating = false;
+        float distanceToTarget = abs(_currentDistance - _targetDistance);
+        float speed = MAX_LINEAR_SPEED * 0.5f;  // 50% della velocità massima
+        
+        // Rallenta in prossimità del punto di svolta
+        if (distanceToTarget < APPROACH_DISTANCE) {
+            speed *= (distanceToTarget / APPROACH_DISTANCE);
+        }
+        
+        _maneuver->forward(speed);
+        
+        // Usa POSITION_TOLERANCE per il controllo della posizione
+        if (distanceToTarget < POSITION_TOLERANCE) {
+            _targetDistance += PARALLEL_LINE_SPACING;
+            _maneuver->rotate(90, 50);  // Gira di 90 gradi con velocità media (50%)
+        }
     }
 }
 
 // Navigazione a spirale
 void Navigation::navigateSpiral() {
-    if (!_isNavigating) {
-        // Imposta il raggio iniziale
-        _currentRadius = SPIRAL_START_RADIUS / 100.0f; // in metri
-        _currentRing = 0;
-        _isNavigating = true;
-    }
-    
-    // Calcola il raggio target per questo anello
-    float targetRadius = (_currentRing * SPIRAL_RADIUS_STEP + SPIRAL_START_RADIUS) / 100.0f;
-    
-    // Ottieni la posizione corrente dal PositionManager
-    RobotPosition pos = _positionManager->getPosition();
-    float x = pos.x;
-    float y = pos.y;
-    
-    // Calcola la distanza dal centro
-    float distance = sqrt(x * x + y * y);
-    
-    if (distance < targetRadius) {
-        // Se siamo dentro il raggio target, muoviti in linea retta
-        _maneuver->forward(DEFAULT_MOTOR_SPEED);
-    } else {
-        // Se siamo fuori dal raggio target, muoviti in spirale
-        _maneuver->spiral(distance * 100, DEFAULT_MOTOR_SPEED);  // Converti m in cm
-        
-        // Se siamo completati l'anello, passa al successivo
-        if (abs(atan2(y, x)) >= 2 * M_PI) {
-            _currentRing++;
-            _currentAngle = 0;
-        }
-    }
+    // Usa direttamente il metodo spiral di Maneuver
+    // Impostazioni predefinite: raggio massimo di 5m e velocità di 0.5 m/s
+    _maneuver->spiral(5.0f, 0.5f);
+    _isNavigating = false;
 }
 
 // Gestione degli ostacoli
 bool Navigation::checkObstacles() {
-    // Controlla i sensori ad ultrasuoni
+    bool obstacleDetected = false;
+    
+    // Controlla sensori ultrasonici se abilitati
 #ifdef ENABLE_ULTRASONIC
-    if (_ultrasonic != nullptr && _ultrasonic->isObstacleDetected(OBSTACLE_DISTANCE_THRESHOLD)) {
-        return true;
+    if (_ultrasonic != nullptr) {
+        // Leggi le distanze dai 3 sensori
+        float left, center, right;
+        _ultrasonic->getAllDistances(left, center, right);
+        
+        float minDistance = OBSTACLE_CLEARANCE * 2; // Inizializza con un valore alto
+        bool validReading = false;
+        
+        // Trova la distanza minima tra i sensori attivi
+        if (left > 0) {
+            validReading = true;
+            if (left < minDistance) minDistance = left;
+        }
+        if (center > 0) {
+            validReading = true;
+            if (center < minDistance) minDistance = center;
+        }
+        if (right > 0) {
+            validReading = true;
+            if (right < minDistance) minDistance = right;
+        }
+        
+        // Se abbiamo almeno una lettura valida e la distanza minima è inferiore alla soglia
+        if (validReading && minDistance < OBSTACLE_CLEARANCE) {
+            obstacleDetected = true;
+        }
     }
 #endif
     
-    // Controlla i sensori di urto
+    // Controlla sensori urto se abilitati
 #ifdef ENABLE_BUMP_SENSORS
-    if (_bumper != nullptr && (_bumper->isLeftBump() || _bumper->isRightBump() || _bumper->isCenterBump())) {
-        return true;
+    if (_bumper != nullptr) {
+        bool left, center, right;
+        _bumper->getAllBumpStatus(left, center, right);
+        if (left || center || right) {
+            obstacleDetected = true;
+        }
     }
 #endif
     
-    return false;
+    return obstacleDetected;
 }
 
 void Navigation::handleObstacle() {
@@ -257,9 +322,9 @@ void Navigation::handleObstacle() {
     _maneuver->backward();
     delay(1000);
     
-    // Gira di un angolo casuale (10-170 gradi)
+    // Gira di un angolo casuale (10-170 gradi) con velocità media (50%)
     int randomAngle = random(RANDOM_TURN_MIN_ANGLE, RANDOM_TURN_MAX_ANGLE);
-    _maneuver->rotate(randomAngle);
+    _maneuver->rotate(randomAngle, 50);
     delay(1000);
     
     // Riprendi la navigazione
@@ -268,17 +333,19 @@ void Navigation::handleObstacle() {
 
 // Gestione del perimetro
 bool Navigation::checkPerimeter() {
-    // Se il perimetro è disabilitato a tempo di compilazione, restituisci false
+    // Se il perimetro è disabilitato, restituisci false
 #ifndef ENABLE_PERIMETER
     return false;
 #else
-    // Se il perimetro non è inizializzato, restituisci false
-    if (_perimeter == nullptr) {
-        return false;
-    }
+    if (_perimeter == nullptr) return false;
     
-    // Il perimetro è abilitato e inizializzato, possiamo usare il puntatore
-    return _perimeter->isDetected();
+    // Considera il perimetro violato se il segnale è al di sotto della soglia
+    bool perimeterDetected = _perimeter->isDetected();
+    if (!perimeterDetected) {
+        _isNavigating = false;
+        return true; // Perimetro violato
+    }
+    return false; // Perimetro non violato
 #endif
 }
 

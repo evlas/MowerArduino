@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../D1MiniSerial"
+		},
+		{
+			"path": "../../../MowerApp"
+		}
+	],
+	"settings": {}
+}

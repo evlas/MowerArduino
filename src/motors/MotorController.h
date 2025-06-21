@@ -74,17 +74,20 @@ private:
     bool _hasRightMotorError;
     
     // Parametri di odometria
-    float _wheelDiameter;      // Diametro delle ruote in cm
-    float _wheelBase;          // Distanza tra le ruote in cm
+    float _wheelDiameter;      // Diametro delle ruote in metri
+    float _wheelBase;          // Distanza tra le ruote in metri
     float _ticksPerRevolution; // Numero di tick per giro di ruota
     
     // Stato odometria
-    float _x;                  // Posizione X in cm
-    float _y;                  // Posizione Y in cm
-    float _theta;              // Orientamento in radianti
-    float _lastLeftPos;        // Ultima posizione sinistra
-    float _lastRightPos;       // Ultima posizione destra
+    float _x;                  // Posizione X in metri
+    float _y;                  // Posizione Y in metri
+    float _theta;              // Orientamento in radianti (-PI a PI)
+    float _lastLeftPos;        // Ultima posizione sinistra in tick
+    float _lastRightPos;       // Ultima posizione destra in tick
     unsigned long _lastUpdate; // Timestamp dell'ultimo aggiornamento
+    float _distancePerTick;    // Distanza per tick in metri/tick
+    float _linearVelocity;     // Velocità lineare in m/s
+    float _angularVelocity;    // Velocità angolare in rad/s
     
     // Inizializzazione dei motori
     void initializeMotors();

@@ -10,7 +10,12 @@
 extern CommandHandler commandHandler;
 #endif
 
-// Include GPS
+// Include EEPROM
+#ifdef ENABLE_EEPROM
+#include "../../src/eeprom/EEPROMConfig.h"
+#include "../../src/eeprom/EEPROMManager.h"
+#endif
+
 #ifdef ENABLE_GPS
 #include "../../src/sensors/GPS.h"
 #endif
@@ -128,6 +133,31 @@ void setupMower() {
         // dopo aver mostrato lo schermo di boot consideriamo già completato il primo step
         bootStep = 1; // progress 1/10
         lcdManager.updateBootProgress(bootStep / (float)BOOT_TOTAL_STEPS);
+    #endif
+
+    // Carica le impostazioni dalla EEPROM
+    #ifdef ENABLE_EEPROM
+        #ifdef SERIAL_DEBUG
+            SERIAL_DEBUG.println(F("Caricamento impostazioni EEPROM..."));
+        #endif
+        
+        EEPROMSettings settings;
+        if (EEPROMManager::loadSettings(settings)) {
+            #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG.println(F("Impostazioni caricate dalla EEPROM"));
+            #endif
+        } else {
+            // Carica impostazioni di default se la EEPROM è vuota o corrotta
+            EEPROMManager::loadDefaultSettings(settings);
+            EEPROMManager::saveSettings(settings);
+            #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG.println(F("Impostazioni di default caricate e salvate"));
+            #endif
+        }
+        
+        #ifdef ENABLE_DISPLAY
+            lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
+        #endif
     #endif
     
     // Inizializza i pin

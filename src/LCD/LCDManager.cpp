@@ -1,6 +1,8 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include "LCDManager.h"
+#include "../eeprom/EEPROMConfig.h"
+#include "../eeprom/EEPROMManager.h"
 
 // Variabili globali per il menu
 const char* menuItems[] = {
@@ -12,6 +14,22 @@ const char* menuItems[] = {
 };
 const int MENU_ITEMS_COUNT = sizeof(menuItems) / sizeof(menuItems[0]);
 int selectedMenuItem = 0;
+
+// Costanti per i menu
+const char* const MOWING_PATTERNS[] = {"Random", "Parallelo", "Spirale", "Zig-Zag"};
+const int MOWING_PATTERN_COUNT = 4;
+
+const char* const NAV_MODES[] = {"Wire", "Virtuale", "GPS"};
+const int NAV_MODES_COUNT = 3;
+
+const char* const LANGUAGES[] = {"Italiano", "English", "Deutsch", "Français"};
+const int LANGUAGES_COUNT = 4;
+
+const char* const TIME_FORMATS[] = {"24h", "12h"};
+const int TIME_FORMATS_COUNT = 2;
+
+const char* const UNITS[] = {"Metrico", "Imperiale"};
+const int UNITS_COUNT = 2;
 
 /**
  * @brief Construct a new LCDManager object.
@@ -76,6 +94,40 @@ void LCDManager::update() {
             break;
         case MenuState::CONFIG_MENU:
             showConfigMenu();
+            break;
+        case MenuState::CONFIG_MOWING:
+            showMowingConfig();
+            break;
+        case MenuState::CONFIG_NAVIGATION:
+            // TODO: Implementa il menu di navigazione
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_SENSORS:
+            // TODO: Implementa il menu sensori
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_MOTORS:
+            // TODO: Implementa il menu motori
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_BATTERY:
+            // TODO: Implementa il menu batteria
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_SYSTEM:
+            // TODO: Implementa il menu di sistema
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_MAINTENANCE:
+            // TODO: Implementa il menu di manutenzione
+            _menuState.setState(MenuState::CONFIG_MENU);
+            break;
+        case MenuState::CONFIG_HOME_POSITION:
+            showHomePositionConfig();
+            break;
+        case MenuState::CONFIG_RESET:
+            // TODO: Implementa il ripristino delle impostazioni
+            _menuState.setState(MenuState::CONFIG_MENU);
             break;
         case MenuState::SPEED_MENU:
             showSpeedMenu();
@@ -225,12 +277,126 @@ void LCDManager::handleMenuNavigation() {
  * 
  * Shows the configuration options (currently under development).
  */
+// Voci del menu di configurazione
+const char* configMenuItems[] = {
+    "1. Taglio",
+    "2. Navigazione",
+    "3. Sensori",
+    "4. Motori",
+    "5. Batteria",
+    "6. Sistema",
+    "7. Manutenzione",
+    "8. Imposta Home",
+    "9. Ripristino",
+    "0. Torna al Menu"
+};
+const int CONFIG_MENU_ITEMS = sizeof(configMenuItems) / sizeof(configMenuItems[0]);
+
+// Variabile per tenere traccia delle voci di menu effettive
+int actualConfigMenuItems = CONFIG_MENU_ITEMS;
+
+// Struttura per la navigazione nei menu
+struct MenuNavigation {
+    uint8_t selectedItem;
+    bool editing;
+    bool needsSave;
+    
+    void reset() {
+        selectedItem = 0;
+        editing = false;
+        needsSave = false;
+    }
+};
+
+MenuNavigation _nav;
+
 void LCDManager::showConfigMenu() {
-    clearDisplay();
+    static bool firstRun = true;
+    
+    // Inizializzazione
+    if (firstRun) {
+        _nav.reset();
+        firstRun = false;
+        clearDisplay();
+        
+        // Verifica se il GPS è abilitato
+        EEPROMSettings settings;
+        EEPROMManager::loadSettings(settings);
+        actualConfigMenuItems = CONFIG_MENU_ITEMS;
+        
+        // Se il GPS non è abilitato, riduci il numero di voci di menu
+        if (!settings.navigation.gpsEnabled) {
+            actualConfigMenuItems--; // Rimuovi "Imposta Home"
+        }
+    }
+    
+    // Gestione navigazione
+    if (isPlusPressed()) {
+        _nav.selectedItem = (_nav.selectedItem + 1) % actualConfigMenuItems;
+        delay(200);
+    } else if (isMinusPressed()) {
+        _nav.selectedItem = (_nav.selectedItem - 1 + actualConfigMenuItems) % actualConfigMenuItems;
+        delay(200);
+    }
+    
+    // Gestione selezione
+    if (isStartPressed()) {
+        // Se il GPS non è abilitato, aggiusta l'indice per saltare la voce "Imposta Home"
+        int adjustedIndex = _nav.selectedItem;
+        EEPROMSettings settings;
+        EEPROMManager::loadSettings(settings);
+        
+        if (!settings.navigation.gpsEnabled && adjustedIndex >= 7) {
+            adjustedIndex++; // Salta la voce "Imposta Home" (indice 7)
+        }
+        
+        switch (adjustedIndex) {
+            case 0: _menuState.setState(MenuState::CONFIG_MOWING); break;
+            case 1: _menuState.setState(MenuState::CONFIG_NAVIGATION); break;
+            case 2: _menuState.setState(MenuState::CONFIG_SENSORS); break;
+            case 3: _menuState.setState(MenuState::CONFIG_MOTORS); break;
+            case 4: _menuState.setState(MenuState::CONFIG_BATTERY); break;
+            case 5: _menuState.setState(MenuState::CONFIG_SYSTEM); break;
+            case 6: _menuState.setState(MenuState::CONFIG_MAINTENANCE); break;
+            case 7: _menuState.setState(MenuState::CONFIG_HOME_POSITION); break;
+            case 8: _menuState.setState(MenuState::CONFIG_RESET); break;
+            case 9: _menuState.setState(MenuState::MAIN_MENU); break;
+        }
+        firstRun = true;
+        delay(200);
+        return;
+    }
+    
+    // Aggiornamento display
     _lcd.setCursor(0, 0);
-    _lcd.print("Config Menu");
-    _lcd.setCursor(0, 1);
-    _lcd.print("Under development");
+    _lcd.print("CONFIGURAZIONE    ");
+    
+    // Mostra le voci di menu con scroll, saltando "Imposta Home" se il GPS non è abilitato
+    EEPROMSettings settings;
+    EEPROMManager::loadSettings(settings);
+    
+    int itemsToShow = min(3, actualConfigMenuItems - _nav.selectedItem);
+    int displayedItems = 0;
+    
+    for (int i = 0; i < 3 && _nav.selectedItem + i < CONFIG_MENU_ITEMS; i++) {
+        // Se il GPS non è abilitato, salta la voce "Imposta Home" (indice 7)
+        if (!settings.navigation.gpsEnabled && (_nav.selectedItem + i) == 7) {
+            continue;
+        }
+        
+        _lcd.setCursor(0, displayedItems + 1);
+        _lcd.print(displayedItems == 0 ? ">" : " ");
+        _lcd.print(configMenuItems[_nav.selectedItem + i]);
+        
+        displayedItems++;
+        if (displayedItems >= itemsToShow) break;
+    }
+    
+    // Mostra frecce di scroll
+    _lcd.setCursor(15, 0);
+    _lcd.print(_nav.selectedItem > 0 ? "^" : " ");
+    _lcd.setCursor(15, 3);
+    _lcd.print(_nav.selectedItem < actualConfigMenuItems - 3 ? "v" : " ");
 }
 
 /**
@@ -257,6 +423,85 @@ void LCDManager::showBatteryMenu() {
     _lcd.print("Battery Menu");
     _lcd.setCursor(0, 1);
     _lcd.print("Under development");
+}
+
+/**
+ * @brief Display the mowing configuration menu.
+ */
+void LCDManager::showMowingConfig() {
+    static bool firstRun = true;
+    static uint8_t selectedParam = 0;
+    static EEPROMSettings eepromSettings;
+    
+    // Carica le impostazioni correnti
+    if (firstRun) {
+        EEPROMManager::loadSettings(eepromSettings);
+        firstRun = false;
+    }
+    
+    // Riferimento alle impostazioni di taglio
+    MowerSettings& settings = eepromSettings.mower;
+    
+    // Navigazione tra i parametri
+    if (isPlusPressed()) {
+        selectedParam = (selectedParam + 1) % 3;
+        delay(200);
+    } else if (isMinusPressed()) {
+        selectedParam = (selectedParam - 1 + 3) % 3;
+        delay(200);
+    }
+    
+    // Modifica valori
+    if (isStartPressed()) {
+        switch (selectedParam) {
+            case 0: // Altezza di taglio
+                settings.cuttingHeight = (settings.cuttingHeight % 10) + 1;
+                break;
+            case 1: // Velocità lama
+                settings.bladeSpeed = (settings.bladeSpeed + 10) % 110;
+                if (settings.bladeSpeed < 30) settings.bladeSpeed = 30; // Min 30%
+                break;
+            case 2: // Pattern di taglio
+                settings.mowingPattern = (settings.mowingPattern + 1) % 3;
+                break;
+        }
+        // Salva le modifiche in EEPROM
+        EEPROMManager::saveSettings(eepromSettings);
+        delay(200);
+    }
+    
+    // Torna al menu precedente
+    if (isStopPressed()) {
+        _menuState.setState(MenuState::CONFIG_MENU);
+        firstRun = true;
+        delay(200);
+        return;
+    }
+    
+    // Aggiorna display
+    clearDisplay();
+    _lcd.setCursor(0, 0);
+    _lcd.print("Impost. Taglio");
+    
+    // Altezza di taglio
+    _lcd.setCursor(0, 1);
+    _lcd.print(selectedParam == 0 ? ">" : " ");
+    _lcd.print("Altezza: ");
+    _lcd.print(settings.cuttingHeight);
+    
+    // Velocità lama
+    _lcd.setCursor(0, 2);
+    _lcd.print(selectedParam == 1 ? ">" : " ");
+    _lcd.print("Vel. lama: ");
+    _lcd.print(settings.bladeSpeed);
+    _lcd.print("%");
+    
+    // Pattern di taglio
+    _lcd.setCursor(0, 3);
+    _lcd.print(selectedParam == 2 ? ">" : " ");
+    _lcd.print("Pattern: ");
+    const char* patterns[] = {"Random", "Parallelo", "Spirale"};
+    _lcd.print(patterns[settings.mowingPattern]);
 }
 
 /**

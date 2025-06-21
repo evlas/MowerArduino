@@ -8,15 +8,22 @@ MotorController::MotorController(float diameter, float base, float ticks) {
     _hasLeftMotorError = false;
     _hasRightMotorError = false;
     
-    // Inizializza l'odometria con i valori forniti
-    initializeOdometry(diameter, base, ticks);
+    // Usa i valori passati se diversi da zero, altrimenti usa i valori di default da config.h
+    // I valori di default sono già in metri, quindi non è necessaria conversione
+    float wheelDiameter = (diameter > 0) ? diameter : WHEEL_DIAMETER;
+    float wheelBase = (base > 0) ? base : 0.2f;  // 20cm di default
+    float ticksPerRev = (ticks > 0) ? ticks : (ENCODER_PULSES_PER_REV * MOTOR_GEAR_RATIO);
+    
+    // Inizializza l'odometria con i valori calcolati
+    initializeOdometry(wheelDiameter, wheelBase, ticksPerRev);
 
-    // Imposta variabili odometriche a valori iniziali; i motori non sono
-    // ancora creati, quindi non possiamo leggere le loro posizioni.
+    // Imposta variabili odometriche a valori iniziali
     _x = _y = _theta = 0.0f;
     _lastLeftPos = 0.0f;
     _lastRightPos = 0.0f;
     _lastUpdate = 0;
+    _linearVelocity = 0.0f;
+    _angularVelocity = 0.0f;
 }
 
 MotorController::~MotorController() {
@@ -91,9 +98,12 @@ void MotorController::initializeMotors() {
 }
 
 void MotorController::initializeOdometry(float diameter, float base, float ticks) {
-    _wheelDiameter = diameter;
-    _wheelBase = base;
+    _wheelDiameter = diameter;  // in metri
+    _wheelBase = base;          // in metri
     _ticksPerRevolution = ticks;
+    
+    // Calcola la distanza per tick in metri/tick
+    _distancePerTick = (PI * _wheelDiameter) / _ticksPerRevolution;
 }
 
 void MotorController::resetOdometry() {
@@ -107,13 +117,20 @@ void MotorController::resetOdometry() {
 
 void MotorController::updateOdometry() {
     unsigned long currentTime = millis();
+    
+    // Controlla il timeout per il rilevamento della fermata
+    if (currentTime - _lastUpdate > ODOMETRY_STOP_TIMEOUT) {
+        _lastUpdate = currentTime;
+        return;
+    }
+    
     float deltaTime = (currentTime - _lastUpdate) / 1000.0f; // in secondi
     
     // Leggi le nuove posizioni
     float currentLeftPos = _leftMotor->getPosition();
     float currentRightPos = _rightMotor->getPosition();
     
-    // Calcola le distanze percorse
+    // Calcola le distanze percorse in metri
     float leftDistance = calculateDistance(currentLeftPos - _lastLeftPos);
     float rightDistance = calculateDistance(currentRightPos - _lastRightPos);
     
@@ -123,19 +140,37 @@ void MotorController::updateOdometry() {
     _lastUpdate = currentTime;
     
     // Calcola l'orientamento
-    _theta += calculateTheta(leftDistance, rightDistance);
+    float deltaTheta = calculateTheta(leftDistance, rightDistance);
+    _theta += deltaTheta;
     
-    // Calcola la posizione
+    // Normalizza l'angolo tra -PI e PI
+    while (_theta > PI) _theta -= 2 * PI;
+    while (_theta < -PI) _theta += 2 * PI;
+    
+    // Calcola la posizione (media delle due ruote)
     float avgDistance = (leftDistance + rightDistance) / 2.0f;
     _x += avgDistance * cos(_theta);
     _y += avgDistance * sin(_theta);
+    
+    // Calcola le velocità lineare e angolare
+    _linearVelocity = avgDistance / deltaTime;
+    _angularVelocity = deltaTheta / deltaTime;
 }
 
 float MotorController::calculateDistance(float ticks) const {
-    return (ticks / _ticksPerRevolution) * PI * _wheelDiameter;
+    // Applica la correzione per il motore sinistro o destro
+    static bool isLeft = (&_lastLeftPos == &_lastLeftPos); // Controlla se è il motore sinistro
+    float correction = isLeft ? ODOMETRY_CORRECTION_LEFT : ODOMETRY_CORRECTION_RIGHT;
+    
+    // Calcola la distanza in metri applicando la correzione
+    return ticks * _distancePerTick * correction;
 }
 
 float MotorController::calculateTheta(float leftDistance, float rightDistance) const {
+    // Calcola la variazione di orientamento in radianti
+    // La formula è: delta_theta = (dr - dl) / b
+    // dove dr e dl sono le distanze percorse dalle ruote destra e sinistra
+    // e b è la distanza tra le ruote (wheel base)
     return (rightDistance - leftDistance) / _wheelBase;
 }
 

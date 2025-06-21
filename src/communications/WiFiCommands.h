@@ -13,10 +13,22 @@ class WiFiSerialBridge;
 #include "../../src/sensors/BatteryMonitor.h"
 #endif
 
+// Forward declaration for EEPROM settings
+#ifdef ENABLE_EEPROM
+struct EEPROMSettings;  // Defined in EEPROMConfig.h
+#endif
+
 // Dichiarazione della funzione di gestione comandi
 void handleWiFiCommand(const String& command, const JsonVariant& params);
 
 // Inizializza il gestore dei comandi
 void initWiFiCommands(WiFiSerialBridge& wifiBridge, CommandHandler& cmdHandler);
+
+// Funzioni per la gestione EEPROM via WiFi
+#ifdef ENABLE_EEPROM
+void sendEepromSettings();
+void handleSetEepromSettings(const JsonVariant& params);
+void handleResetEepromToDefault();
+#endif
 
 #endif // WIFI_COMMANDS_H

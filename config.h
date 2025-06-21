@@ -18,9 +18,118 @@
 #define BUILD_DATE __DATE__
 #define BUILD_TIME __TIME__
 
-#include "pin_config.h"
+// Abilita la gestione della EEPROM
+#define ENABLE_EEPROM
 
+#include "pin_config.h"
+#include "src/eeprom/EEPROMConfig.h"
+
+// ========================
+// PARAMETRI ROBOT
+// ========================
+
+// --- DIMENSIONI FISICHE ---
+#define ROBOT_LENGTH 0.50f           // [m] Lunghezza totale del robot
+#define ROBOT_WIDTH 0.40f            // [m] Larghezza totale del robot
+#define ROBOT_HEIGHT 0.25f           // [m] Altezza totale del robot
+#define CLEARANCE 0.05f              // [m] Altezza minima da terra del telaio
+
+// --- CONFIGURAZIONE RUOTE ---
+#define WHEEL_DIAMETER 0.30f         // [m] Diametro delle ruote motrici
+#define WHEEL_BASE 0.55f             // [m] Distanza tra le ruote motrici (asse sinistro-destro)
+#define WHEEL_WIDTH 0.08f            // [m] Larghezza delle ruote
+#define WHEEL_FRICTION 0.8f          // [-] Coefficiente di attrito (0.0-1.0)
+
+// --- CONFIGURAZIONE LAMA ---
+#define BLADE_WIDTH 0.44f            // [m] Larghezza di taglio effettiva
+#define BLADE_OFFSET_X 0.20f          // [m] Offset orizzontale dal centro (positivo = avanti)
+#define BLADE_OFFSET_Y 0.0f          // [m] Offset laterale dal centro (positivo = destra)
+#define BLADE_HEIGHT 0.03f           // [m] Altezza di taglio da terra
+
+// --- PESI E BILANCIAMENTO ---
+#define ROBOT_WEIGHT 35.0f           // [kg] Peso totale a vuoto
+#define BATTERY_WEIGHT 2.5f          // [kg] Peso della batteria
+#define MAX_SLOPE_ANGLE 25.0f        // [°] Massima pendenza superabile
+
+// --- CENTRI DI ROTAZIONE ---
+#define TURN_RADIUS 0.20f            // [m] Raggio di sterzata minimo
+#define PIVOT_OFFSET 0.0f            // [m] Offset del punto di perno (positivo = avanti)
+
+// --- POSIZIONE SENSORI (rispetto al centro del robot) ---
+#define ULTRASONIC_FRONT_L 0.25f     // [m] Posizione L sensore anteriore
+#define ULTRASONIC_FRONT_C 0.0f      // [m] Posizione C sensore anteriore
+#define ULTRASONIC_FRONT_R 0.25f     // [m] Posizione R sensore anteriore
+#define BUMPER_FRONT_L 0.25f    // [m] Sporgenza anteriore dei bumper
+#define BUMPER_FRONT_R 0.25f    // [m] Sporgenza anteriore dei bumper
+#define LIFT_SENSOR_OFFSET 0.0f      // [m] Offset sensore sollevamento
+
+// --- PRESTAZIONI ---
+#define MAX_LINEAR_SPEED 1.1f        // [m/s] Velocità massima in avanti/indietro
+#define MAX_ANGULAR_SPEED 1.0f       // [rad/s] Velocità angolare massima
+#define MAX_LINEAR_ACCEL 0.5f        // [m/s²] Accelerazione lineare massima
+#define MAX_ANGULAR_ACCEL 1.0f       // [rad/s²] Accelerazione angolare massima
+
+// --- ZONE DI SICUREZZA ---
+#define SAFETY_MARGIN 0.10f          // [m] Margine di sicurezza intorno al robot
+#define OBSTACLE_CLEARANCE 0.15f     // [m] Distanza minima da ostacoli
+
+// --- PARAMETRI DI MANOVRA ---
+#define MIN_TURN_RADIUS 0.3f         // [m] Raggio di sterzata minimo
+#define SPOT_TURN_RADIUS 0.1f        // [m] Raggio per rotazione su se stanti
+
+// ========================
+// TIMING E INTERVALLI
+// ========================
+#define MAIN_LOOP_DELAY 50              // [ms] Delay loop principale
+#define SENSOR_UPDATE_INTERVAL 50       // [ms] Intervallo aggiornamento sensori
+#define NAV_UPDATE_INTERVAL 100         // [ms] Intervallo aggiornamento navigazione
+#define SAFETY_CHECK_INTERVAL 50        // [ms] Intervallo controlli sicurezza
+#define ODOMETRY_UPDATE_INTERVAL 10     // [ms] Intervallo aggiornamento odometria
+
+// ========================
+// SICUREZZA
+// ========================
+// Distanze di sicurezza
+#define SAFETY_MARGIN 0.10f             // [m] Margine di sicurezza intorno al robot
+#define OBSTACLE_CLEARANCE (SAFETY_MARGIN * 2.0f)  // [m] Distanza minima da ostacoli
+#define PERIMETER_SAFETY_DISTANCE (SAFETY_MARGIN * 3.0f) // [m] Distanza di sicurezza dal perimetro
+#define CLIFF_DETECTION_HEIGHT 0.05f    // [m] Altezza rilevamento dislivelli
+
+// Timeout
+#define EMERGENCY_STOP_TIMEOUT 1000           // [ms] Timeout arresto di emergenza
+#define MOTOR_COMMAND_TIMEOUT (MAIN_LOOP_DELAY * 10)  // [ms] Timeout comandi motore (10 cicli)
+
+// ========================
+// NAVIGAZIONE
+// ========================
+// Prestazioni
+#define MAX_LINEAR_SPEED 1.1f           // [m/s] Velocità massima in avanti/indietro
+#define MAX_ANGULAR_SPEED 1.0f          // [rad/s] Velocità angolare massima
+#define MAX_LINEAR_ACCEL 0.5f           // [m/s²] Accelerazione lineare massima
+#define MAX_ANGULAR_ACCEL 1.0f          // [rad/s²] Accelerazione angolare massima
+
+// Tolleranze
+#define POSITION_TOLERANCE (SAFETY_MARGIN * 0.5f)  // [m] Tolleranza raggiungimento posizione (50% del margine di sicurezza)
+#define HEADING_TOLERANCE_DEG 5.0f                 // [°] Tolleranza angolare in gradi
+#define HEADING_TOLERANCE (HEADING_TOLERANCE_DEG * DEG_TO_RAD) // [rad] Tolleranza angolo (convertita in radianti)
+#define PARALLEL_LINE_SPACING BLADE_WIDTH  // [m] Spaziatura linee navigazione parallela (uguale alla larghezza di taglio)
+
+// Manovre
+#define MIN_TURN_RADIUS (WHEEL_BASE * 0.55f)  // [m] Raggio di sterzata minimo (55% della base)
+#define SPOT_TURN_RADIUS (WHEEL_BASE * 0.18f) // [m] Raggio per rotazione su se stanti
+#define APPROACH_DISTANCE (ROBOT_LENGTH * 0.3f) // [m] Distanza di avvicinamento target (30% lunghezza robot)
+#define REVERSE_DISTANCE (ROBOT_LENGTH * 0.4f)  // [m] Distanza retromarcia in caso di ostacolo (40% lunghezza robot)
+
+// Mappatura
+#define MAP_CELL_SIZE (BLADE_WIDTH * 0.45f)  // [m] Dimensione cella mappa (45% larghezza lama)
+#define MAX_WORK_AREA 10000.0f               // [m²] Area massima di lavoro
+#define MAP_WIDTH (int)(sqrt(MAX_WORK_AREA) / MAP_CELL_SIZE)  // [celle] Larghezza mappa
+#define MAP_HEIGHT MAP_WIDTH                // [celle] Altezza mappa (quadrata)
+#define MAP_UPDATE_RATE 1.0f            // [Hz] Frequenza aggiornamento mappa
+
+// ========================
 // SERIAL PORTS
+// ========================
 #define SERIAL_DEBUG Serial  // USB Serial for debugging
 #define SERIAL_GPS Serial1   // Hardware Serial1 for GPS
 #define SERIAL_WIFI Serial2  // Hardware Serial2 for ESP8266
@@ -190,6 +299,35 @@
 // Parametri di sicurezza
 #define MIN_DISTANCE_FROM_PERIMETER  30  // Minima distanza dal perimetro in cm
 #define MIN_DISTANCE_FROM_OBSTACLE   20  // Minima distanza dagli ostacoli in cm
+
+// ========================
+// CONFIGURAZIONE ODOMETRIA
+// ========================
+#ifdef ENABLE_ODOMETRY
+    // Configurazione encoder
+    #define ENCODER_PULSES_PER_REV 12      // Impulsi per giro dell'encoder
+    #define MOTOR_GEAR_RATIO 185.0f        // Rapporto di riduzione del motore
+    
+    // Calcolo impulsi per metro
+    // (impulsi/giro) * (giri motore/giro ruota) / (circonferenza ruota in metri)
+    // Es: (12 * 185) / (π * 0.15) ≈ 4712 impulsi/metro
+    #define PULSES_PER_METER ((ENCODER_PULSES_PER_REV * MOTOR_GEAR_RATIO) / (PI * WHEEL_DIAMETER))
+    
+    // Fattore di correzione odometria (1.0 = nessuna correzione)
+    #define ODOMETRY_CORRECTION_LEFT 1.0f
+    #define ODOMETRY_CORRECTION_RIGHT 1.0f
+    
+    // Timeout rilevamento fermo (ms)
+    #define ODOMETRY_STOP_TIMEOUT 1000
+#endif
+
+// ========================
+// CONFIGURAZIONI TIMING
+// ========================
+#define MAIN_LOOP_DELAY 50              // Delay loop principale (ms)
+#define SENSOR_UPDATE_INTERVAL 100      // Intervallo aggiornamento sensori (ms)
+#define NAVIGATION_UPDATE_INTERVAL 200  // Intervallo navigazione (ms)
+#define SAFETY_CHECK_INTERVAL 50        // Intervallo controlli sicurezza (ms)
 
 // ========================
 // CONFIGURAZIONI AVANZATE

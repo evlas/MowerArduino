@@ -14,6 +14,15 @@ class MenuState {
         enum State {
             MAIN_MENU,
             CONFIG_MENU,
+            CONFIG_MOWING,
+            CONFIG_NAVIGATION,
+            CONFIG_SENSORS,
+            CONFIG_MOTORS,
+            CONFIG_BATTERY,
+            CONFIG_SYSTEM,
+            CONFIG_MAINTENANCE,
+            CONFIG_HOME_POSITION,
+            CONFIG_RESET,
             START_MENU,
             STOP_MENU,
             SPEED_MENU,
@@ -148,6 +157,31 @@ class LCDManager {
          * @brief Display the battery information menu.
          */
         void showBatteryMenu();
+        
+        /**
+         * @brief Display the home position configuration menu.
+         * 
+         * Allows the user to set or clear the home position.
+         */
+        void showHomePositionConfig();
+        
+        // Funzioni per i menu di configurazione
+        void showMowingConfig();
+        void showNavigationConfig();
+        void showSystemConfig();
+        void showNetworkConfig();
+        void showResetConfirm();
+        
+        // Funzioni di utilità
+        void showEditValue(const char* label, const char* value, uint8_t line, bool selected, bool editing = false);
+        void showEditValue(const char* label, int value, uint8_t line, bool selected, bool editing = false, const char* suffix = "");
+        void showEditValue(const char* label, float value, uint8_t line, bool selected, bool editing = false, uint8_t decimals = 1, const char* suffix = "");
+        void showEditBool(const char* label, bool value, uint8_t line, bool selected, bool editing = false);
+        void showEditList(const char* label, const char* const* items, uint8_t count, uint8_t selectedIndex, uint8_t line, bool selected, bool editing = false);
+        
+        // Gestione del salvataggio
+        void showSavingMessage();
+        void showSavedMessage();
         
         /**
          * @brief Check if the start button is pressed.

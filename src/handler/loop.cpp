@@ -173,6 +173,9 @@ void loopMower() {
     // 4. Aggiornamento della macchina a stati
     mowerStateMachine.update();
     
+    // 4.1 Aggiornamento accelerazione/decelerazione motori
+    mowerManeuver.updateAcceleration();
+    
     // 5. Gestione telemetria (se abilitata)
     #ifdef ENABLE_WIFI
         // Process incoming WiFi commands continuously
