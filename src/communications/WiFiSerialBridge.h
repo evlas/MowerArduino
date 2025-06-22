@@ -8,8 +8,12 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-// Forward declarations
-class CommandHandler;
+// Dimensione massima del buffer circolare
+#define SERIAL_BUFFER_SIZE 1024
+// Dimensione massima per i documenti JSON
+#define MAX_JSON_DOC_SIZE 512
+// Numero massimo di messaggi in coda
+#define MAX_QUEUED_MESSAGES 10
 
 // Struttura per i comandi ricevuti
 struct WiFiCommand {
@@ -19,6 +23,27 @@ struct WiFiCommand {
 };
 
 class WiFiSerialBridge {
+private:
+    // Buffer circolare per i dati in arrivo
+    char _circularBuffer[SERIAL_BUFFER_SIZE];
+    size_t _head = 0;
+    size_t _tail = 0;
+    
+    // Documenti JSON preallocati
+    StaticJsonDocument<MAX_JSON_DOC_SIZE> _rxDoc;
+    StaticJsonDocument<MAX_JSON_DOC_SIZE * 2> _txDoc;
+    
+    // Coda messaggi per il batch
+    StaticJsonDocument<MAX_JSON_DOC_SIZE * MAX_QUEUED_MESSAGES> _txQueue;
+    uint8_t _messageCount = 0;
+    uint8_t _nextMsgId = 0;
+    
+    // Metodi privati
+    size_t _available() const { return (_head >= _tail) ? (_head - _tail) : (SERIAL_BUFFER_SIZE - _tail + _head); }
+    void _processBuffer();
+    String _compressPayload(const String& payload);
+    bool _parseIncoming();
+    
 public:
     /**
      * @brief Costruttore
@@ -47,6 +72,28 @@ public:
     bool sendCommand(const String& command, const JsonDocument& params = emptyDoc);
     
     /**
+     * @brief Accoda un messaggio per l'invio in batch
+     * @param command Nome del comando
+     * @param params Parametri del comando
+     * @return true se il messaggio è stato accodato, false se la coda è piena
+     */
+    bool queueMessage(const String& command, const JsonObject& params);
+    
+    /**
+     * @brief Invia tutti i messaggi accodati
+     */
+    void sendQueuedMessages();
+    
+    /**
+     * @brief Invia un comando in formato binario (più efficiente)
+     * @param cmdId ID del comando
+     * @param data Dati binari del comando
+     * @param len Lunghezza dei dati
+     * @return true se l'invio è riuscito, false altrimenti
+     */
+    bool sendBinaryCommand(uint8_t cmdId, const uint8_t* data, size_t len);
+    
+    /**
      * @brief Invia un messaggio di risposta
      * @param status Stato della risposta (es. "ok", "error")
      * @param message Messaggio di risposta
@@ -69,7 +116,7 @@ public:
     bool available() const;
     
     /**
-     * @brief Imposta la funzione di callback per i comandi non gestiti
+     * @brief Imposta la funzione di callback per la gestione dei comandi
      * @param callback Funzione di callback con firma: void callback(const String& command, const JsonVariant& params)
      */
     void setCommandHandler(void (*callback)(const String&, const JsonVariant&));

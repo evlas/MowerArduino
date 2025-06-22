@@ -92,6 +92,16 @@ void StateMachine::handleStateTransition(MowerState newState) {
         return; // Nessuna transizione necessaria
     }
 
+    // Controllo per transizione non consentita
+    if (_currentState == MowerState::MOWING && newState == MowerState::CHARGING) {
+        #ifdef SERIAL_DEBUG
+            SERIAL_DEBUG.println(F("ERRORE: Transizione diretta da MOWING a CHARGING non consentita"));
+            SERIAL_DEBUG.println(F("Forzare prima la transizione a RETURN_TO_BASE"));
+        #endif
+        // Forza la transizione a RETURN_TOBASE invece che a CHARGING
+        newState = MowerState::RETURN_TO_BASE;
+    }
+
     // Salva lo stato corrente come precedente prima di cambiare
     _previousState = _currentState;
     
@@ -371,6 +381,16 @@ void StateMachine::executeStateActions() {
 }
 
 void StateMachine::onEnterState(MowerState newState) {
+    // Controllo di sicurezza per transizioni non consentite a CHARGING
+    if (newState == MowerState::CHARGING && 
+        _currentState != MowerState::RETURN_TO_BASE && 
+        _currentState != MowerState::IDLE) {
+        #ifdef SERIAL_DEBUG
+            SERIAL_DEBUG.println(F("ERRORE: Transizione non consentita a CHARGING"));
+        #endif
+        return; // Non permettere la transizione
+    }
+    
     _stateStartTime = millis();
     
     // Gestione del relay in base allo stato

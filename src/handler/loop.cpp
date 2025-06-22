@@ -145,13 +145,31 @@ void loopMower() {
         const float BATTERY_CRITICAL_VOLTAGE = BATTERY_EMPTY_VOLTAGE * BATTERY_CELLS; // soglia pack batteria scarica
         const float BATTERY_LOW_VOLTAGE = BATTERY_LOW_THRESHOLD * BATTERY_CELLS; // soglia pack batteria bassa
 
-        // Informa la state-machine se collegato alla base di ricarica
-        if (voltage >= BATTERY_RECHARGING && mowerStateMachine.getCurrentState() != MowerState::CHARGING) {
-            mowerStateMachine.sendEvent(MowerEvent::CHARGING_COMPLETE);
-        }
-        // Se è in carica e la tensione scende a FULL_BATTERY_VOLTAGE, passa in docking
-        if (mowerStateMachine.getCurrentState() == MowerState::CHARGING && voltage <= FULL_BATTERY_VOLTAGE) {
-            mowerStateMachine.sendEvent(MowerEvent::RETURN_TO_BASE);
+        // Gestione transizioni quando la batteria è in carica (sulla base)
+        if (voltage >= BATTERY_RECHARGING) {
+            // Se siamo in MOWING, andiamo in RETURN_TO_BASE
+            if (mowerStateMachine.getCurrentState() == MowerState::MOWING) {
+                mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
+            } 
+            // Se siamo già in RETURN_TO_BASE e la tensione è stabile, andiamo in CHARGING
+            else if (mowerStateMachine.getCurrentState() == MowerState::RETURN_TO_BASE) {
+                // Aggiungi un piccolo ritardo per assicurarti che il robot sia effettivamente sulla base
+                static unsigned long chargingStartTime = 0;
+                if (chargingStartTime == 0) {
+                    chargingStartTime = currentTime;
+                } else if (currentTime - chargingStartTime > 2000) { // Aspetta 2 secondi
+                    mowerStateMachine.sendEvent(MowerEvent::CHARGING_COMPLETE);
+                    chargingStartTime = 0; // Reset per il prossimo ciclo
+                }
+            }
+            // Se siamo in IDLE e la tensione è alta, andiamo in CHARGING
+            else if (mowerStateMachine.getCurrentState() == MowerState::IDLE) {
+                mowerStateMachine.sendEvent(MowerEvent::CHARGING_COMPLETE);
+            }
+        } else {
+            // Reset del timer se la tensione scende
+            static unsigned long chargingStartTime = 0;
+            chargingStartTime = 0;
         }
 
         // Ignores invalid reading (0V) that sometimes appears at start

@@ -1,22 +1,46 @@
 #include "CommandHandler.h"
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "../../config.h"
 
 // Include per le costanti di velocità
 #include "../../config.h"
 
-CommandHandler::CommandHandler(StateMachine* stateMachine, Navigation* navigation) 
+// Include sensor headers
+#ifdef ENABLE_ULTRASONIC
+#include "../../src/sensors/UltrasonicSensors.h"
+#endif
+
+#ifdef ENABLE_BUMP_SENSORS
+#include "../../src/sensors/BumpSensors.h"
+#endif
+
+CommandHandler::CommandHandler(StateMachine* stateMachine, 
+                             Navigation* navigation
+                             #ifdef ENABLE_ULTRASONIC
+                             , UltrasonicSensors* ultrasonicSensors
+                             #endif
+                             #ifdef ENABLE_BUMP_SENSORS
+                             , BumpSensors* bumpSensors
+                             #endif
+                             ) 
     : _stateMachine(stateMachine), 
       _navigation(navigation),
       _currentSpeed(0.0f),
       _currentTurnRate(0.0f),
       _currentAngle(0.0f),
       _currentBladeSpeed(0),
-      _maxSpeed(static_cast<float>(MAX_MOTOR_SPEED)),
-      _telemetry(nullptr),
-      _telemetryEnabled(false),
-      _telemetryInterval(1000),  // Intervallo predefinito: 1 secondo
-      _lastTelemetryUpdate(0) {}
+      _maxSpeed(static_cast<float>(MAX_MOTOR_SPEED))
+      #ifdef ENABLE_ULTRASONIC
+      , _ultrasonicSensors(ultrasonicSensors)
+      #endif
+      #ifdef ENABLE_BUMP_SENSORS
+      , _bumpSensors(bumpSensors)
+      #endif
+      , _telemetry(nullptr)
+      , _telemetryEnabled(false)
+      , _telemetryInterval(1000)  // Intervallo predefinito: 1 secondo
+      , _lastTelemetryUpdate(0) {}
 
 // Metodi di movimento
 void CommandHandler::moveForward(float speed) {
@@ -181,6 +205,31 @@ uint32_t CommandHandler::getTelemetryInterval() const {
     return _telemetryInterval;
 }
 
+// Popola il documento JSON con i dati dei sensori
+void CommandHandler::getSensorData(DynamicJsonDocument& doc) {
+    // Aggiungi dati dei sensori ultrasonici se disponibili
+    #ifdef ENABLE_ULTRASONIC
+    if (_ultrasonicSensors != nullptr) {
+        JsonObject ultrasonic = doc.createNestedObject("ultrasonic");
+        ultrasonic["left"] = _ultrasonicSensors->getFrontLeftDistance();
+        ultrasonic["center"] = _ultrasonicSensors->getFrontCenterDistance();
+        ultrasonic["right"] = _ultrasonicSensors->getFrontRightDistance();
+    }
+    #endif
+
+    // Aggiungi dati dei sensori di urto se disponibili
+    #ifdef ENABLE_BUMP_SENSORS
+    if (_bumpSensors != nullptr) {
+        JsonObject bumper = doc.createNestedObject("bumper");
+        bool left, center, right;
+        _bumpSensors->getAllBumpStatus(left, center, right);
+        bumper["left"] = left;
+        bumper["center"] = center;
+        bumper["right"] = right;
+    }
+    #endif
+}
+
 // Metodo per aggiornare la telemetria (da chiamare nel loop principale)
 void CommandHandler::updateTelemetry() {
     if (!_telemetryEnabled || !_telemetry) {
@@ -189,15 +238,17 @@ void CommandHandler::updateTelemetry() {
     
     unsigned long currentTime = millis();
     if (currentTime - _lastTelemetryUpdate >= _telemetryInterval) {
+        // Update the telemetry data
         _telemetry->update();
-        _lastTelemetryUpdate = currentTime;
         
-        // Qui puoi aggiungere la logica per inviare i dati di telemetria
-        // ad esempio tramite seriale, WiFi, ecc.
-        if (Serial) {  // Esempio di invio tramite seriale
-            String telemetryData = _telemetry->toJSON();
-            Serial.println(telemetryData);
-        }
+        // Debug: print telemetry data if debug is enabled
+        #ifdef SERIAL_DEBUG
+        String telemetryData = _telemetry->toJSON();
+        SERIAL_DEBUG.println("Telemetry data:");
+        SERIAL_DEBUG.println(telemetryData);
+        #endif
+        
+        _lastTelemetryUpdate = currentTime;
     }
 }
 

@@ -123,11 +123,18 @@ extern Navigation navigation;
 #endif
 
 // Definizione di commandHandler
-CommandHandler commandHandler(&mowerStateMachine, 
+CommandHandler commandHandler(
+    &mowerStateMachine, 
 #ifdef ENABLE_NAVIGATION
     &navigation
 #else
     nullptr
+#endif
+#ifdef ENABLE_ULTRASONIC
+    , &ultrasonicSensors
+#endif
+#ifdef ENABLE_BUMP_SENSORS
+    , &bumpSensors
 #endif
 );
 #endif

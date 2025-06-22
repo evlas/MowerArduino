@@ -3,18 +3,36 @@
 
 #include "../../config.h"  // Include le costanti di velocità
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "Telemetry.h"
 
 // Forward declarations
 class StateMachine;
 class Navigation;
 
+// Forward declarations for sensors
+#ifdef ENABLE_ULTRASONIC
+class UltrasonicSensors;
+#endif
+
+#ifdef ENABLE_BUMP_SENSORS
+class BumpSensors;
+#endif
+
 #define MIN_ANGLE 1.0f
 #define MAX_ANGLE 360.0f
 
 class CommandHandler {
 public:
-    CommandHandler(StateMachine* stateMachine, Navigation* navigation);
+    CommandHandler(StateMachine* stateMachine, 
+                  Navigation* navigation
+                  #ifdef ENABLE_ULTRASONIC
+                  , UltrasonicSensors* ultrasonicSensors = nullptr
+                  #endif
+                  #ifdef ENABLE_BUMP_SENSORS
+                  , BumpSensors* bumpSensors = nullptr
+                  #endif
+                  );
     
     // Gestione comandi di movimento con controllo di velocità
     void moveForward(float speed = DEFAULT_MOTOR_SPEED);
@@ -60,11 +78,14 @@ public:
     // Gestione connessione
     void resetConnection();
     
-    // Gestione telemetria
+    // Metodi per la gestione della telemetria
     void enableTelemetry(bool enable);
     void setTelemetryInterval(uint32_t intervalMs);
     bool isTelemetryEnabled() const;
     uint32_t getTelemetryInterval() const;
+    
+    // Metodo per ottenere i dati dei sensori
+    void getSensorData(DynamicJsonDocument& doc);
     void updateTelemetry();
     
 private:
@@ -75,6 +96,15 @@ private:
     float _currentAngle;         // Angolo corrente in gradi (0-360)
     uint8_t _currentBladeSpeed;   // 0-100%
     float _maxSpeed;             // Velocità massima consentita
+    
+    // Riferimenti ai sensori
+    #ifdef ENABLE_ULTRASONIC
+    UltrasonicSensors* _ultrasonicSensors;
+    #endif
+    
+    #ifdef ENABLE_BUMP_SENSORS
+    BumpSensors* _bumpSensors;
+    #endif
     
     // Metodi di validazione
     bool validateSpeed(float speed) const;

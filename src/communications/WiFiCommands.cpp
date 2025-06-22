@@ -121,14 +121,29 @@ void handleWiFiCommand(const String& command, const JsonVariant& params) {
     }
     else if (command == "getStatus") {
         // Invia lo stato attuale come risposta
-        StaticJsonDocument<256> status;
+        DynamicJsonDocument status(1024);
         status["state"] = static_cast<int>(mowerStateMachine.getCurrentState());
         #ifdef ENABLE_BATTERY_MONITOR
         status["batteryLevel"] = batteryMonitor.getBusVoltage_V();
         #else
         status["batteryLevel"] = 0.0f; // Battery monitoring not enabled
         #endif
+        
+        // Aggiungi i dati dei sensori
+        cmdHandler->getSensorData(status);
+        
         if (wifiBridgeInstance) wifiBridgeInstance->sendResponse("ok", "Current status", status);
+    }
+    else if (command == "getSensorData") {
+        // Invia solo i dati dei sensori
+        DynamicJsonDocument sensorData(1024);
+        
+        // Popola i dati dei sensori
+        cmdHandler->getSensorData(sensorData);
+        
+        if (wifiBridgeInstance) {
+            wifiBridgeInstance->sendResponse("ok", "Sensor data", sensorData);
+        }
     }
     else if (command == "enableTelemetry") {
         uint32_t interval = 1000;
