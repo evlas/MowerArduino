@@ -220,7 +220,7 @@ void setupMower() {
         wifiBridge.begin();
         
         // Inizializza il gestore dei comandi WiFi
-        initWiFiCommands(wifiBridge, commandHandler);
+        WiFiCommands::initWiFiCommands(wifiBridge, commandHandler);
         
         #ifdef SERIAL_DEBUG
             SERIAL_DEBUG.println("WiFi Serial Bridge inizializzato");

@@ -64,6 +64,14 @@ void BatteryMonitor::updateCapacity() {
 }
 
 void BatteryMonitor::printStatus() const {
+    const char* statusText;
+    switch(getBatteryStatus()) {
+        case BATTERY_DISCHARGING: statusText = "DISCHARGING"; break;
+        case BATTERY_CHARGING: statusText = "CHARGING"; break;
+        case BATTERY_STANDBY: statusText = "STANDBY"; break;
+        default: statusText = "UNKNOWN";
+    }
+    
     SERIAL_DEBUG.print(F("Battery: "));
     SERIAL_DEBUG.print(voltage, 2);
     SERIAL_DEBUG.print(F("V, "));
@@ -74,5 +82,6 @@ void BatteryMonitor::printStatus() const {
     SERIAL_DEBUG.print(soc, 1);
     SERIAL_DEBUG.print(F("%, "));
     SERIAL_DEBUG.print(capacity, 2);
-    SERIAL_DEBUG.println(F("Ah"));
+    SERIAL_DEBUG.print(F("Ah, Status: "));
+    SERIAL_DEBUG.println(statusText);
 }

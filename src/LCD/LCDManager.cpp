@@ -135,6 +135,10 @@ void LCDManager::update() {
         case MenuState::BATTERY_MENU:
             showBatteryMenu();
             break;
+        case MenuState::CONFIG_PID:
+            showPIDMenu();
+            handlePIDEdit();
+            break;
         default:
             showMainMenu();
             break;
@@ -288,6 +292,7 @@ const char* configMenuItems[] = {
     "7. Manutenzione",
     "8. Imposta Home",
     "9. Ripristino",
+    "10. PID",
     "0. Torna al Menu"
 };
 const int CONFIG_MENU_ITEMS = sizeof(configMenuItems) / sizeof(configMenuItems[0]);
@@ -300,11 +305,15 @@ struct MenuNavigation {
     uint8_t selectedItem;
     bool editing;
     bool needsSave;
+    uint8_t pidType;
+    uint8_t pidParam;
     
     void reset() {
         selectedItem = 0;
         editing = false;
         needsSave = false;
+        pidType = 0;
+        pidParam = 0;
     }
 };
 
@@ -360,7 +369,8 @@ void LCDManager::showConfigMenu() {
             case 6: _menuState.setState(MenuState::CONFIG_MAINTENANCE); break;
             case 7: _menuState.setState(MenuState::CONFIG_HOME_POSITION); break;
             case 8: _menuState.setState(MenuState::CONFIG_RESET); break;
-            case 9: _menuState.setState(MenuState::MAIN_MENU); break;
+            case 9: _menuState.setState(MenuState::CONFIG_PID); break;
+            case 10: _menuState.setState(MenuState::MAIN_MENU); break;
         }
         firstRun = true;
         delay(200);
@@ -640,4 +650,124 @@ void LCDManager::showSetupComplete() {
     _lcd.setCursor(0, 1);
     _lcd.print("Setup completo  "); // padding to overwrite bar
     delay(5000);  // wait 1/20 second to make progress visible
+}
+
+void LCDManager::showPIDMenu() {
+    static const char* const PID_TYPES[] = {"Left Motor", "Right Motor", "Position", "Heading"};
+    static const char* const PID_PARAMS[] = {"KP", "KI", "KD", "MinOut", "MaxOut", "ILimit"};
+    
+    // Carica i valori correnti
+    PIDParams left, right;
+    PositionPID position;
+    EEPROMManager::loadConfigSection(CONFIG_PID_LEFT, &left, sizeof(left));
+    EEPROMManager::loadConfigSection(CONFIG_PID_RIGHT, &right, sizeof(right));
+    EEPROMManager::loadConfigSection(CONFIG_PID, &position, sizeof(position));
+    
+    // Mostra titolo e selezione
+    _lcd.clear();
+    _lcd.setCursor(0, 0);
+    _lcd.print(PID_TYPES[_nav.pidType]);
+    _lcd.print(":");
+    _lcd.print(PID_PARAMS[_nav.pidParam]);
+    
+    // Mostra valore corrente
+    _lcd.setCursor(0, 1);
+    float value = getPIDValue(left, _nav.pidParam);
+    _lcd.print("Value: ");
+    _lcd.print(value, 2);
+    
+    // Mostra stato editing
+    if(_nav.editing) {
+        _lcd.setCursor(14, 1);
+        _lcd.print("*");
+    }
+}
+
+void LCDManager::handlePIDEdit() {
+    // Gestione navigazione
+    if(!_nav.editing) {
+        if(isPlusPressed() && _nav.pidParam < PID_PARAMS_COUNT-1) _nav.pidParam++;
+        if(isMinusPressed() && _nav.pidParam > 0) _nav.pidParam--;
+        if(isStartPressed()) _nav.editing = true;
+        if(isStopPressed()) _menuState.setState(MenuState::CONFIG_MENU);
+        return;
+    }
+    
+    // Carica valori correnti
+    PIDParams left, right;
+    PositionPID position;
+    EEPROMManager::loadConfigSection(CONFIG_PID_LEFT, &left, sizeof(left));
+    EEPROMManager::loadConfigSection(CONFIG_PID_RIGHT, &right, sizeof(right));
+    EEPROMManager::loadPIDParams(left, right);
+    EEPROMManager::loadConfigSection(CONFIG_PID, &position, sizeof(position));
+    
+    // Seleziona parametro da modificare
+    float* currentParam = nullptr;
+    switch(_nav.pidType) {
+        case 0: currentParam = getPIDParamPtr(left, _nav.pidParam); break;
+        case 1: currentParam = getPIDParamPtr(right, _nav.pidParam); break;
+        case 2: currentParam = getPIDParamPtr(position.position, _nav.pidParam); break;
+        case 3: currentParam = getPIDParamPtr(position.heading, _nav.pidParam); break;
+    }
+    
+    // Modifica valore con limiti
+    if(isPlusPressed()) {
+        *currentParam += PID_STEP;
+        *currentParam = constrain(*currentParam, getMinLimit(_nav.pidParam), getMaxLimit(_nav.pidParam));
+    }
+    if(isMinusPressed()) {
+        *currentParam -= PID_STEP;
+        *currentParam = constrain(*currentParam, getMinLimit(_nav.pidParam), getMaxLimit(_nav.pidParam));
+    }
+    
+    // Salva o annulla
+    if(isStartPressed()) {
+        // Salva i parametri PID
+        EEPROMManager::saveConfigSection(CONFIG_PID_LEFT, &left, sizeof(left));
+        EEPROMManager::saveConfigSection(CONFIG_PID_RIGHT, &right, sizeof(right));
+        
+        // Notifica il salvataggio
+        showSavedMessage();
+        _nav.editing = false;
+    }
+    if(isStopPressed()) {
+        _nav.editing = false;
+    }
+}
+
+// Funzioni helper
+float LCDManager::getPIDValue(const PIDParams& params, uint8_t param) const {
+    switch(param) {
+        case 0: return params.kp;
+        case 1: return params.ki;
+        case 2: return params.kd;
+        case 3: return params.minOut;
+        case 4: return params.maxOut;
+        case 5: return params.iLimit;
+        default: return 0.0f;
+    }
+}
+
+float* LCDManager::getPIDParamPtr(PIDParams& params, uint8_t param) {
+    switch(param) {
+        case 0: return &params.kp;
+        case 1: return &params.ki;
+        case 2: return &params.kd;
+        case 3: return &params.minOut;
+        case 4: return &params.maxOut;
+        case 5: return &params.iLimit;
+        default: return nullptr;
+    }
+}
+
+float LCDManager::getMinLimit(uint8_t param) const {
+    if(param <= 2) return PID_MIN_K;       // KP, KI, KD
+    if(param <= 4) return PID_MIN_OUT;     // MinOut, MaxOut
+    return PID_MIN_ILIMIT;                 // ILimit
+}
+
+float LCDManager::getMaxLimit(uint8_t param) const {
+    if(param <= 2) return PID_MAX_K;       // KP, KI, KD
+    if(param <= 4) return PID_MAX_OUT;     // MinOut, MaxOut
+    return PID_MAX_ILIMIT;                 // ILimit
 }

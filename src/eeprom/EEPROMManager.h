@@ -4,6 +4,12 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <stddef.h>  // Per size_t e offsetof
+#include <ArduinoJson.h>
+#include "EEPROMConfig.h"  // Include PIDParams definition
+
+// Forward declarations
+class WiFiSerialBridge;
+class CommandHandler;
 
 // Includi il file di configurazione EEPROM che contiene le definizioni delle strutture
 #include "EEPROMConfig.h"
@@ -15,11 +21,15 @@ enum ConfigSection {
     CONFIG_NAVIGATION,  // Impostazioni navigazione
     CONFIG_MAINTENANCE, // Manutenzione
     CONFIG_PID,         // Parametri PID (carica solo leftPID, rightPID viene gestito separatamente)
-    CONFIG_HOME_POS     // Posizione home
+    CONFIG_HOME_POS,    // Posizione home
+    CONFIG_PID_LEFT,     // Parametri PID sinistro
+    CONFIG_PID_RIGHT     // Parametri PID destro
 };
 
 class EEPROMManager {
 public:
+    typedef ConfigSection ConfigSectionType;
+    
     // Inizializza la EEPROM
     static void begin();
     
@@ -47,6 +57,27 @@ public:
     // Ottieni l'offset di una sezione
     static size_t getSectionOffset(ConfigSection section);
     
+    // Formattazione PID
+    static String formatPID(const PIDParams& p);
+    static bool parsePIDParams(const String& args, PIDParams& params);
+
+    // Funzioni EEPROM (se abilitate)
+    static void sendEepromSettings();
+    static void handleSetEepromSettings(const JsonVariant& params);
+    static void handleResetEepromToDefault();
+    static void initWiFiCommands(WiFiSerialBridge& wifiBridge, CommandHandler& handler);
+    static void handleWiFiCommand(const String& command, const JsonVariant& params);
+    
+    // PIDParams is defined in EEPROMConfig.h
+
+    // Riferimenti globali
+    static WiFiSerialBridge* wifiBridgeInstance;
+    static CommandHandler* cmdHandler;
+
+    // Implementazioni delle funzioni membro
+    static String handleGetPID(const String& args);
+    static String handleSetPID(const String& args);
+
     // Funzione per il calcolo del checksum
     static uint8_t calculateChecksum(const void* data, size_t len);
     
@@ -71,6 +102,11 @@ public:
     // PIDParams
     static void updateChecksum(PIDParams& data);
     static bool validateChecksum(const PIDParams& data);
+    static bool validatePID(const PIDParams& p) {
+        return p.kp >= 0 && p.ki >= 0 && p.kd >= 0 
+            && p.minOut < p.maxOut
+            && p.iLimit > 0;
+    }
     
     // HomePosition (struttura speciale)
     static void updateChecksum(HomePosition& data);

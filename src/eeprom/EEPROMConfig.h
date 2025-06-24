@@ -8,7 +8,17 @@ struct PIDParams {
     float kp;
     float ki;
     float kd;
+    float minOut;
+    float maxOut;
+    float iLimit;
     uint8_t checksum;  // Per validazione
+};
+
+// Struttura per i parametri PID della posizione
+struct PositionPID {
+    PIDParams position;    // PID per il controllo della posizione
+    PIDParams heading;     // PID per il controllo dell'orientamento
+    uint8_t checksum;      // Per validazione
 };
 
 // Struttura per la posizione del docking
@@ -77,6 +87,7 @@ struct EEPROMSettings {
     // Sezioni preesistenti
     PIDParams leftPID;
     PIDParams rightPID;
+    PositionPID positionPID;  // PID per il controllo della posizione
     HomePosition homePosition;
     
     uint8_t checksum;  // Checksum totale

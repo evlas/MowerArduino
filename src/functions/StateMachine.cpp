@@ -504,13 +504,30 @@ void StateMachine::checkStateTransitions() {
     unsigned long currentTime = millis();
     unsigned long stateDuration = currentTime - _stateStartTime;
     
+    // Controllo continuo dello stato della batteria (se abilitato)
+    #ifdef ENABLE_BATTERY_MONITOR
+    static unsigned long lastBatteryCheck = 0;
+    if (currentTime - lastBatteryCheck > 5000) { // Controlla ogni 5 secondi
+        lastBatteryCheck = currentTime;
+        
+        // Ottieni lo stato della batteria
+        BatteryMonitor::BatteryStatus batteryStatus = batteryMonitor.getBatteryStatus();
+        
+        // Gestisci gli stati in base al livello della batteria
+        if (batteryMonitor.isCritical() && _currentState != MowerState::RETURN_TO_BASE) {
+            // Batteria critica, torna alla base immediatamente
+            sendEvent(MowerEvent::LOW_BATTERY);
+        } 
+        else if (batteryMonitor.isLow() && _currentState == MowerState::MOWING) {
+            // Batteria bassa durante il taglio, programma il ritorno alla base
+            sendEvent(MowerEvent::LOW_BATTERY);
+        }
+    }
+    #endif
+    
     switch (_currentState) {
         case MowerState::MOWING:
-            // Verifica se è il momento di tornare alla base per la ricarica
-            // (esempio: ogni 30 minuti di taglio)
-            if (stateDuration > 30 * 60 * 1000) { // 30 minuti
-                sendEvent(MowerEvent::LOW_BATTERY);
-            }
+            // Il controllo della batteria è gestito nella sezione precedente
             break;
             
         case MowerState::OBSTACLE_AVOIDANCE:
@@ -560,9 +577,28 @@ void StateMachine::returnToBaseActions() {
 void StateMachine::chargingActions() {
     // Verifica lo stato della carica
     #ifdef ENABLE_BATTERY_MONITOR
-    // Utilizza il metodo isFullyCharged() di BatteryMonitor che confronta con BATTERY_VOLTAGE_MAX
-    if (batteryMonitor.isFullyCharged()) {
-        sendEvent(MowerEvent::BATTERY_CHARGED);
+    // Controlla lo stato della batteria
+    BatteryMonitor::BatteryStatus status = batteryMonitor.getBatteryStatus();
+    
+    switch(status) {
+        case BatteryMonitor::BATTERY_CHARGING:
+            // La batteria è in carica, tutto ok
+            break;
+            
+        case BatteryMonitor::BATTERY_DISCHARGING:
+            // Errore: la batteria dovrebbe essere in carica ma sta scaricando
+            sendEvent(MowerEvent::ERROR_DETECTED);
+            break;
+            
+        case BatteryMonitor::BATTERY_STANDBY:
+            // La batteria è completamente carica o non c'è corrente di carica
+            if (batteryMonitor.isFullyCharged()) {
+                sendEvent(MowerEvent::BATTERY_CHARGED);
+            } else {
+                // Nessuna corrente di carica rilevata
+                sendEvent(MowerEvent::ERROR_DETECTED);
+            }
+            break;
     }
     #endif
 }

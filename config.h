@@ -66,8 +66,8 @@
 // --- PRESTAZIONI ---
 #define MAX_LINEAR_SPEED 1.1f        // [m/s] Velocità massima in avanti/indietro
 #define MAX_ANGULAR_SPEED 1.0f       // [rad/s] Velocità angolare massima
-#define MAX_LINEAR_ACCEL 0.5f        // [m/s²] Accelerazione lineare massima
-#define MAX_ANGULAR_ACCEL 1.0f       // [rad/s²] Accelerazione angolare massima
+#define MAX_LINEAR_ACCEL 0.25f        // [m/s²] Accelerazione lineare massima
+#define MAX_ANGULAR_ACCEL 0.25f       // [rad/s²] Accelerazione angolare massima
 
 // --- ZONE DI SICUREZZA ---
 #define SAFETY_MARGIN 0.10f          // [m] Margine di sicurezza intorno al robot
@@ -270,7 +270,8 @@
 #define BATTERY_VOLTAGE_MAX     (BATTERY_CELLS * BATTERY_FULL_VOLTAGE)      // 25.2V per 6S
 #define BATTERY_VOLTAGE_MIN     (BATTERY_CELLS * BATTERY_EMPTY_VOLTAGE)     // 18.0V per 6S
 #define BATTERY_VOLTAGE_CRITICAL (BATTERY_CELLS * BATTERY_CRITICAL_VOLTAGE) // 19.2V per 6S
-#define BATTERY_LOW_LEVEL       20.0f  // Soglia di batteria bassa (20%)
+#define BATTERY_LOW_PERCENT     20.0f  // 20% di carica
+#define BATTERY_LOW_LEVEL       (BATTERY_VOLTAGE_MIN + (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN) * (BATTERY_LOW_PERCENT / 100.0f))  // Soglia di batteria bassa (20%)
 
 // Alias per compatibilità con il codice esistente
 #define FULL_BATTERY_VOLTAGE    BATTERY_VOLTAGE_MAX

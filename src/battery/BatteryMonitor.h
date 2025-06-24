@@ -45,6 +45,19 @@ public:
     bool isLow() const { return soc < BATTERY_LOW_LEVEL; }  // Soglia di batteria bassa
     bool isFullyCharged() const { return voltage >= BATTERY_VOLTAGE_MAX * 0.99f && current > -0.1f; }  // 99% della tensione massima e corrente di carica quasi nulla
     
+    // Get battery status based on current flow
+    enum BatteryStatus {
+        BATTERY_DISCHARGING,  // Current > 0: Battery is powering the motors
+        BATTERY_CHARGING,     // Current < 0: Battery is being charged
+        BATTERY_STANDBY       // Current ≈ 0: System in standby
+    };
+    
+    BatteryStatus getBatteryStatus() const { 
+        if (current > 0.1f) return BATTERY_DISCHARGING;
+        if (current < -0.1f) return BATTERY_CHARGING;
+        return BATTERY_STANDBY;
+    }
+    
     // Stampa stato su seriale (debug)
     void printStatus() const;
 

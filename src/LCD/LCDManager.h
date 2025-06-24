@@ -2,9 +2,12 @@
 #define LCD_MANAGER_H
 
 #include <Arduino.h>
+#include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "../../pin_config.h"
+#include "../eeprom/EEPROMConfig.h"
+#include "../eeprom/EEPROMManager.h"
 
 /**
  * @brief Enumerates the possible menu states for the LCD display.
@@ -23,6 +26,7 @@ class MenuState {
             CONFIG_MAINTENANCE,
             CONFIG_HOME_POSITION,
             CONFIG_RESET,
+            CONFIG_PID,
             START_MENU,
             STOP_MENU,
             SPEED_MENU,
@@ -81,6 +85,10 @@ class RobotState {
          */
         State getState() const { return currentState; }
 };
+
+// Forward declarations
+struct PIDParams;
+struct PositionPID;
 
 /**
  * @brief Manages the LCD display and user interface for the Mower Arduino.
@@ -183,6 +191,10 @@ class LCDManager {
         void showSavingMessage();
         void showSavedMessage();
         
+        // Gestione PID
+        void showPIDMenu();
+        void handlePIDEdit();
+        
         /**
          * @brief Check if the start button is pressed.
          * @return true if pressed, false otherwise
@@ -227,12 +239,29 @@ class LCDManager {
         
         // Costanti
         static const unsigned long DEBOUNCE_DELAY = 50;
+        static const int PID_TYPES_COUNT = 4;
+        static const int PID_PARAMS_COUNT = 6;
+        
+        // Limiti parametri PID
+        static const float PID_MIN_K = 0.0f;
+        static const float PID_MAX_K = 10.0f;
+        static const float PID_MIN_OUT = -1.0f;
+        static const float PID_MAX_OUT = 1.0f;
+        static const float PID_MIN_ILIMIT = 0.0f;
+        static const float PID_MAX_ILIMIT = 5.0f;
+        static const float PID_STEP = 0.1f;
         
         // Funzioni private
         void updateButtonStates();
         void clearDisplay();
         void showMenuTitle(const char* title);
         void showProgressBar(float progress);
+        
+        // Funzioni helper PID
+        float getPIDValue(const PIDParams& params, uint8_t param) const;
+        float* getPIDParamPtr(PIDParams& params, uint8_t param);
+        float getMinLimit(uint8_t param) const;
+        float getMaxLimit(uint8_t param) const;
 };
 
 extern LCDManager lcdManager;
