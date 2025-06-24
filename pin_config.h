@@ -43,9 +43,9 @@
 // ========================
 // MOTORE LAMA
 // ========================
-#define BLADE_MOTOR_PWM_PIN 8      // PWM motore lama principale
-#define BLADE_MOTOR_DIR_PIN 9      // Direzione motore lama principale
-
+#define BLADE_MOTOR1_PWM_PIN 8      // PWM primo motore lama principale
+#define BLADE_MOTOR2_PWM_PIN 9      // PWM secondo motore lama principale
+#define BLADE_MOTOR_DIR_PIN 10      // Direzione motore lama principale
 // ========================
 // SENSORI
 // ========================
@@ -67,7 +67,6 @@
 
 // Sensore pioggia (abilitare con ENABLE_RAIN_SENSOR)
 #define RAIN_SENSOR_PIN A6           // Pin analogico per sensore pioggia
-#define RAIN_PIN A3                  // Pin alternativo per sensore pioggia
 
 // RTC (abilitare con ENABLE_RTC)
 #define RTC_SCLK_PIN 31              // Clock RTC

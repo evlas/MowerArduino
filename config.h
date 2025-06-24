@@ -170,6 +170,7 @@
 #define TURN_MOTOR_SPEED 100
 
 #define ENABLE_BLADE_MOTORS
+#define BLADE_MOTORS_NUM      2        //Numero di motori per le lame di taglio
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
 //#define BLADE_MOTOR_TIPO2  // Motori Brushed 
 #define BLADE_WIDTH 0.44f    // 2 * 22cm = 44cm
@@ -250,7 +251,7 @@
 #define BATTERY_MONITOR_ADDRESS 0x40
 #define BATTERY_UPDATE_INTERVAL 1000  // Aggiornamento ogni 1 secondo
 
-#define BATTERY_CELLS          7
+#define BATTERY_CELLS          6
 #define BATTERY_SHUNT_RESISTOR 0.1  // 0.1 Ohm
 #define BATTERY_MAX_VOLTAGE BATTERY_CELLS*BATTERY_FULL_VOLTAGE   // V
 #define BATTERY_MAX_CURRENT 3.2     // A

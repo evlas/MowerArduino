@@ -128,7 +128,7 @@ bool BladeController::initializeBlade() {
     _Blade = createBladeInstance();
     if (_Blade != nullptr) {
         // Per i motori della lama, l'encoder è opzionale e può essere NULL
-        _Blade->configurePins(BLADE_MOTOR_DIR_PIN, BLADE_MOTOR_PWM_PIN, NULL);
+        _Blade->configurePins(BLADE_MOTOR_DIR_PIN, BLADE_MOTOR1_PWM_PIN, NULL);
         return true;
     }
     return false;

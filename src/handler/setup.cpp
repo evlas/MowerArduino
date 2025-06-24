@@ -232,7 +232,8 @@ void setupMower() {
     // Inizializza il buzzer
     #ifdef ENABLE_BUZZER
         buzzer.begin();
-        buzzer.beep(1000, 100); // Breve beep di conferma (frequenza 1000Hz, durata 100ms)
+        // Suono di conferma all'avvio
+        buzzer.buttonPressSound();
         #ifdef ENABLE_DISPLAY
         lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
         #endif
