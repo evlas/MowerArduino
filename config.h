@@ -248,25 +248,33 @@
 #define MAX_ULTRASONIC_DISTANCE 200     // cm
 
 #ifdef ENABLE_BATTERY_MONITOR
+// Configurazione INA226
 #define BATTERY_MONITOR_ADDRESS 0x40
 #define BATTERY_UPDATE_INTERVAL 1000  // Aggiornamento ogni 1 secondo
+#define BATTERY_CHECK_INTERVAL 1000   // Intervallo di controllo batteria (ms)
+#define BATTERY_SHUNT_RESISTOR  0.1f   // Ohm
+#define BATTERY_MAX_CURRENT     10.0f  // A massimi misurati
+#define BATTERY_VOLTAGE_DIVIDER 1.0f   // Rapporto partitore tensione (1:1 se non usato)
 
+// Configurazione batteria LiPo
 #define BATTERY_CELLS          6
-#define BATTERY_SHUNT_RESISTOR 0.1  // 0.1 Ohm
-#define BATTERY_MAX_VOLTAGE BATTERY_CELLS*BATTERY_FULL_VOLTAGE   // V
-#define BATTERY_MAX_CURRENT 3.2     // A
+#define BATTERY_CAPACITY       5.0f  // Ampere-ora
 
-#define LOW_BATTERY_THRESHOLD BATTERY_CELLS*BATTERY_LOW_THRESHOLD   // V
-#define FULL_BATTERY_VOLTAGE BATTERY_CELLS*BATTERY_FULL_VOLTAGE    // V
-#define BATTERY_RECHARGING BATTERY_CELLS*BATTERY_RECHARGE_VOLTAGE    // V
-#define BATTERY_VOLTAGE_DIVIDER 5.0  // Rapporto partitore tensione
+// Parametri di tensione (per cella)
+#define BATTERY_FULL_VOLTAGE    4.2f   // V per cella a piena carica
+#define BATTERY_EMPTY_VOLTAGE   3.0f   // V per cella scarica
+#define BATTERY_LOW_THRESHOLD   3.3f   // V per cella (soglia di avviso batteria bassa)
+#define BATTERY_CRITICAL_VOLTAGE 3.2f  // V per cella (soglia di spegnimento)
 
-// Battery parameters
-#define BATTERY_RECHARGE_VOLTAGE 4.2
-#define BATTERY_FULL_VOLTAGE 4.16     // V
-#define BATTERY_EMPTY_VOLTAGE 3.2    // V
-#define BATTERY_LOW_THRESHOLD 3.5    // V
-#define BATTERY_CHECK_INTERVAL 1000  // ms
+// Parametri calcolati
+#define BATTERY_VOLTAGE_MAX     (BATTERY_CELLS * BATTERY_FULL_VOLTAGE)      // 25.2V per 6S
+#define BATTERY_VOLTAGE_MIN     (BATTERY_CELLS * BATTERY_EMPTY_VOLTAGE)     // 18.0V per 6S
+#define BATTERY_VOLTAGE_CRITICAL (BATTERY_CELLS * BATTERY_CRITICAL_VOLTAGE) // 19.2V per 6S
+#define BATTERY_LOW_LEVEL       20.0f  // Soglia di batteria bassa (20%)
+
+// Alias per compatibilità con il codice esistente
+#define FULL_BATTERY_VOLTAGE    BATTERY_VOLTAGE_MAX
+#define BATTERY_RECHARGING      (BATTERY_VOLTAGE_MAX * 0.95f) // 95% della carica massima
 #endif
 
 #ifdef ENABLE_RAIN_SENSOR

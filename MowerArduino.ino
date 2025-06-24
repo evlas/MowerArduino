@@ -71,9 +71,8 @@ RainSensor rainSensor;
 #endif
 
 #ifdef ENABLE_BATTERY_MONITOR
-#include <INA226_WE.h>
-#include "src/sensors/BatteryMonitor.h"
-INA226_WE batteryMonitor = INA226_WE(BATTERY_MONITOR_ADDRESS);
+#include "src/sensors/BatterySensor.h"
+#include "src/battery/BatteryMonitor.h"
 #endif
 
 // MOTORS

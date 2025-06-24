@@ -16,8 +16,8 @@ extern CommandHandler commandHandler;
 #endif
 
 #ifdef ENABLE_BATTERY_MONITOR
-#include <INA226_WE.h>
-extern INA226_WE batteryMonitor;
+#include "../battery/BatteryMonitor.h"
+extern BatteryMonitor batteryMonitor;
 #endif
 
 #ifdef ENABLE_ULTRASONIC
@@ -134,19 +134,16 @@ void loopMower() {
     if ((currentTime - lastBatteryUpdate) >= BATTERY_CHECK_INTERVAL) {
         lastBatteryUpdate = currentTime;
 
-        // Leggi lo stato della batteria con gestione degli errori
-        float voltage = 0.0f;
-        float current = 0.0f;
-
-        // Lettura batteria
-        voltage = batteryMonitor.getBusVoltage_V();
-        current = batteryMonitor.getCurrent_mA();
-
-        const float BATTERY_CRITICAL_VOLTAGE = BATTERY_EMPTY_VOLTAGE * BATTERY_CELLS; // soglia pack batteria scarica
-        const float BATTERY_LOW_VOLTAGE = BATTERY_LOW_THRESHOLD * BATTERY_CELLS; // soglia pack batteria bassa
+        // Aggiorna le letture della batteria
+        batteryMonitor.update();
+        
+        // Leggi lo stato della batteria
+        float voltage = batteryMonitor.getVoltage();
+        float current = batteryMonitor.getCurrent();
+        float soc = batteryMonitor.getSOC();
 
         // Gestione transizioni quando la batteria è in carica (sulla base)
-        if (voltage >= BATTERY_RECHARGING) {
+        if (batteryMonitor.isCharging()) {
             // Se siamo in MOWING, andiamo in RETURN_TO_BASE
             if (mowerStateMachine.getCurrentState() == MowerState::MOWING) {
                 mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
@@ -172,16 +169,17 @@ void loopMower() {
             chargingStartTime = 0;
         }
 
-        // Ignores invalid reading (0V) that sometimes appears at start
-        if (voltage > 0.1f && voltage < BATTERY_CRITICAL_VOLTAGE) {
+        // Gestione degli eventi di batteria critica e bassa
+        if (batteryMonitor.isCritical()) {
             mowerStateMachine.sendEvent(MowerEvent::EMERGENCY_STOP);
             ErrorManager::addError(ErrorCode::BATTERY_CRITICAL,
-                                   String("Tensione critica: ") + String(voltage, 2) + "V");
-        } else if (voltage > 0.1f && voltage < BATTERY_LOW_VOLTAGE) {
+                               String("Tensione critica: ") + String(voltage, 2) + "V");
+        } else if (batteryMonitor.isLow()) {
             if (mowerStateMachine.getCurrentState() != MowerState::RETURN_TO_BASE) {
                 mowerStateMachine.sendEvent(MowerEvent::LOW_BATTERY);
                 ErrorManager::addError(ErrorCode::BATTERY_LOW,
-                                       String("Batteria scarica: ") + String(voltage, 2) + "V");
+                                   String("Batteria scarica: ") + String(soc, 1) + "% (" + 
+                                   String(voltage, 2) + "V)");
             }
         }
         // }
@@ -222,14 +220,17 @@ void loopMower() {
             statusDoc["isMowing"] = mowerStateMachine.isMowing();
             bool isChargingFlag = (mowerStateMachine.getCurrentState() == MowerState::CHARGING);
             #ifdef ENABLE_BATTERY_MONITOR
-                float battVolt = batteryMonitor.getBusVoltage_V();
-                isChargingFlag = (battVolt >= BATTERY_RECHARGING);
-                const float PACK_MIN_VOLT = BATTERY_EMPTY_VOLTAGE * BATTERY_CELLS;   // e.g. 3.2*3 = 9.6V
-                const float PACK_MAX_VOLT = BATTERY_FULL_VOLTAGE * BATTERY_CELLS;   // e.g. 4.16*3 ≈ 12.48V
-                uint8_t battLevel = (uint8_t)constrain(map(battVolt * 1000, PACK_MIN_VOLT * 1000, PACK_MAX_VOLT * 1000, 0, 100), 0, 100);
+                // Aggiorna le letture della batteria
+                batteryMonitor.update();
+                float battVolt = batteryMonitor.getVoltage();
+                isChargingFlag = batteryMonitor.isCharging();
+                uint8_t battLevel = static_cast<uint8_t>(batteryMonitor.getSOC());
                 JsonObject batt = statusDoc.createNestedObject("battery");
                 batt["voltage"] = battVolt;
                 batt["level"] = battLevel;
+                batt["current"] = batteryMonitor.getCurrent();
+                batt["power"] = batteryMonitor.getPower();
+                batt["capacity"] = batteryMonitor.getCapacity();
             #endif
             statusDoc["isCharging"] = isChargingFlag;
             statusDoc["state"] = static_cast<int>(mowerStateMachine.getCurrentState());

@@ -10,7 +10,7 @@ class WiFiSerialBridge;
 
 // Include battery monitor header if enabled
 #ifdef ENABLE_BATTERY_MONITOR
-#include "../../src/sensors/BatteryMonitor.h"
+#include "../battery/BatteryMonitor.h"
 #endif
 
 // Forward declaration for EEPROM settings

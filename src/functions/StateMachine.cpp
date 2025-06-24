@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #ifdef ENABLE_BATTERY_MONITOR
-#include <INA226_WE.h>
-extern INA226_WE batteryMonitor;
+#include "../battery/BatteryMonitor.h"
+extern BatteryMonitor batteryMonitor;
 #endif
 
 // Dichiarazione delle istanze esterne
@@ -560,8 +560,8 @@ void StateMachine::returnToBaseActions() {
 void StateMachine::chargingActions() {
     // Verifica lo stato della carica
     #ifdef ENABLE_BATTERY_MONITOR
-    float voltage = batteryMonitor.getBusVoltage_V();
-    if (voltage >= FULL_BATTERY_VOLTAGE) {
+    // Utilizza il metodo isFullyCharged() di BatteryMonitor che confronta con BATTERY_VOLTAGE_MAX
+    if (batteryMonitor.isFullyCharged()) {
         sendEvent(MowerEvent::BATTERY_CHARGED);
     }
     #endif

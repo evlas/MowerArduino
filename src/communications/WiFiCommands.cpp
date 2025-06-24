@@ -23,9 +23,9 @@ extern CommandHandler commandHandler;
 // Riferimento al bridge WiFi
 static WiFiSerialBridge* wifiBridgeInstance = nullptr;
 
-// Riferimento al monitor della batteria (definito in MowerArduino.ino)
+// Riferimento al monitor della batteria (definito in BatteryMonitor.h)
 #ifdef ENABLE_BATTERY_MONITOR
-extern INA226_WE batteryMonitor;
+#include "../battery/BatteryMonitor.h"
 #endif
 
 // Variabile statica per il riferimento al gestore dei comandi
@@ -124,7 +124,7 @@ void handleWiFiCommand(const String& command, const JsonVariant& params) {
         DynamicJsonDocument status(1024);
         status["state"] = static_cast<int>(mowerStateMachine.getCurrentState());
         #ifdef ENABLE_BATTERY_MONITOR
-        status["batteryLevel"] = batteryMonitor.getBusVoltage_V();
+        status["batteryLevel"] = batteryMonitor.getVoltage();
         #else
         status["batteryLevel"] = 0.0f; // Battery monitoring not enabled
         #endif

@@ -27,7 +27,8 @@ extern CommandHandler commandHandler;
 
 // Include Battery Monitor
 #ifdef ENABLE_BATTERY_MONITOR
-#include "../../src/sensors/BatteryMonitor.h"
+#include "../../src/sensors/BatterySensor.h"
+#include "../../src/battery/BatteryMonitor.h"
 #endif
 
 // Le variabili globali sono definite in loop.cpp
@@ -37,10 +38,6 @@ unsigned long lastSafetyCheck = 0;
 #ifdef ENABLE_DRIVE_MOTORS
 #include "../../src/motors/MotorController.h"
 #include "../../src/functions/Maneuver.h"
-#endif
-
-#ifdef ENABLE_BATTERY_MONITOR
-#include "../../src/sensors/BatteryMonitor.h"
 #endif
 
 #ifdef ENABLE_DISPLAY
@@ -185,14 +182,18 @@ void setupMower() {
 
     // Inizializza il monitor della batteria
     #ifdef ENABLE_BATTERY_MONITOR
-        batteryMonitor = INA226_WE(BATTERY_MONITOR_ADDRESS);
-        if (!batteryMonitor.init()) {
-            SERIAL_DEBUG.println("ERRORE: Impossibile inizializzare INA226!");
+        // Inizializza il sensore di batteria
+        if (!batterySensor.begin()) {
+            #ifdef SERIAL_DEBUG
+            SERIAL_DEBUG.println(F("Errore inizializzazione sensore batteria!"));
+            #endif
         }
-        batteryMonitor.setAverage(AVERAGE_16);
-        batteryMonitor.setConversionTime(CONV_TIME_1100);
-        batteryMonitor.setMeasureMode(CONTINUOUS);
-        batteryMonitor.setCorrectionFactor(0.95);
+        
+        // Inizializza il monitor della batteria
+        batteryMonitor.begin();
+        #ifdef SERIAL_DEBUG
+        SERIAL_DEBUG.println(F("Battery Monitor inizializzato"));
+        #endif
         #ifdef ENABLE_DISPLAY
         lcdManager.updateBootProgress(++bootStep / (float)BOOT_TOTAL_STEPS);
         #endif
