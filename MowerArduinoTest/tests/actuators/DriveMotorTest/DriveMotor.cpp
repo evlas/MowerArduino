@@ -22,15 +22,20 @@ namespace DriveMotorISR {
 }
 
 DriveMotor::DriveMotor(uint8_t pwmPin, uint8_t dirPin, uint8_t encoderPin,
-                     float wheelDiameter, int pulsesPerRevolution, bool reversed)
-    : MotorBase(pwmPin, dirPin, reversed),
+                     float wheelDiameter, int pulsesPerRevolution, bool isLeft)
+    : MotorBase(pwmPin, dirPin),
       wheelDiameter_(wheelDiameter),
       wheelCircumference_(PI * wheelDiameter),
       pulsesPerRevolution_(pulsesPerRevolution),
       encoderPin_(encoderPin),
-      isLeftMotor_(pwmPin == MOTOR_LEFT_PWM_PIN) {
+      isLeftMotor_(isLeft) {
     
-    // Register this instance in the ISR handler
+    // Imposta la direzione invertita per il motore destro
+    if (!isLeftMotor_) {
+        setReversed(true);
+    }
+    
+    // Registra questa istanza nel gestore ISR
     if (isLeftMotor_) {
         DriveMotorISR::leftMotorInstance = this;
     } else {
@@ -55,51 +60,44 @@ void DriveMotor::begin() {
     // Inizializza il tempo dell'ultimo aggiornamento
     lastSpeedUpdate_ = millis();
     
-    // Imposta l'accelerazione di default
-    setAcceleration(MAX_LINEAR_ACCEL, MAX_LINEAR_ACCEL * 1.5f);
+    // Imposta l'accelerazione di default basata sulla configurazione
+    maxAcceleration_ = MAX_LINEAR_ACCEL;
+    maxDeceleration_ = MAX_LINEAR_DECEL;
 }
 
 void DriveMotor::update() {
-    static unsigned long lastUpdateTime = millis();
-    unsigned long currentTime = millis();
-    float dt = (currentTime - lastUpdateTime) / 1000.0f;  // Converti in secondi
+    // Aggiorna la velocità con accelerazione
+    updateSpeed();
     
-    // Aggiorna la velocità in base all'accelerazione
-    MotorBase::updateSpeed();
-    
-    // Aggiorna la stima della velocità basata sull'encoder
+    // Aggiorna la stima della velocità lineare
     updateSpeedEstimate();
     
-    // Aggiorna la posizione in base alla velocità
-    if (dt > 0) {
-        updatePosition(dt);
-    }
-    
-    lastUpdateTime = currentTime;
-}
-
-void DriveMotor::updateSpeedEstimate() {
+    // Aggiorna la posizione
     unsigned long currentTime = millis();
-    unsigned long dt = currentTime - lastSpeedUpdate_;
-    
-    // Aggiorna la stima della velocità ogni 50ms (20Hz)
-    if (dt >= 50) {
-        // Calcola la velocità in m/s
-        float distancePerPulse = wheelCircumference_ / pulsesPerRevolution_;
-        long deltaCount = encoderCount_ - lastEncoderCount_;
+    if (lastUpdateTime_ > 0) {
+        float dt = (currentTime - lastUpdateTime_) / 1000.0f;  // in secondi
+        updatePosition(dt);
         
-        // Aggiorna la distanza percorsa
-        distanceTraveled_ += deltaCount * distancePerPulse;
-        
-        // Calcola la velocità lineare (m/s)
-        if (dt > 0) {
-            currentLinearSpeed_ = (deltaCount * distancePerPulse) / (dt / 1000.0f);
+        // Aggiorna la stima della velocità ogni 50ms (20Hz)
+        if ((currentTime - lastSpeedUpdate_) >= 50) {
+            // Calcola la velocità in m/s
+            float distancePerPulse = wheelCircumference_ / pulsesPerRevolution_;
+            long deltaCount = encoderCount_ - lastEncoderCount_;
+            
+            // Aggiorna la distanza percorsa
+            distanceTraveled_ += deltaCount * distancePerPulse;
+            
+            // Calcola la velocità lineare (m/s)
+            if (dt > 0) {
+                currentLinearSpeed_ = (deltaCount * distancePerPulse) / (dt / 1000.0f);
+            }
+            
+            // Aggiorna i contatori per il prossimo ciclo
+            lastEncoderCount_ = encoderCount_;
+            lastSpeedUpdate_ = currentTime;
         }
-        
-        // Aggiorna i contatori per il prossimo ciclo
-        lastEncoderCount_ = encoderCount_;
-        lastSpeedUpdate_ = currentTime;
     }
+    lastUpdateTime_ = currentTime;
 }
 
 void DriveMotor::resetEncoder() {
@@ -115,16 +113,11 @@ void DriveMotor::setLinearSpeed(float speed) {
     // Limita la velocità al massimo consentito
     speed = constrain(speed, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED);
     
-    // Converti da m/s a valore PWM (-799 a 799 per 20kHz PWM con ICR = 799)
-    int percent = map(fabs(speed) * 1000, 0, MAX_LINEAR_SPEED * 1000, 0, 100);
-    
-    // Applica la direzione
-    if (speed < 0) {
-        percent = -percent;
-    }
+    // Converti da m/s a percentuale (-100% a 100%)
+    float percent = (speed / MAX_LINEAR_SPEED) * 100.0f;
     
     // Imposta la velocità target
-    setPowerPercent(percent);
+    setSpeed(percent);
 }
 
 // Metodo per la gestione dell'interrupt
@@ -136,22 +129,52 @@ void DriveMotor::handleEncoderISR() {
 void DriveMotor::updatePosition(float dt) {
     if (dt <= 0) return;  // Evita divisioni per zero o valori negativi
     
+    // Calcola la percentuale di potenza in base alla velocità massima consentita
+    float percent = (currentLinearSpeed_ / MAX_LINEAR_SPEED) * 100.0f;
+    setSpeed(percent);
+    
     // Calcola lo spostamento lineare in base alla velocità corrente
     float distance = currentLinearSpeed_ * dt;
     
     // Aggiorna la posizione (in un sistema di riferimento locale al motore)
     // La direzione dipende dal segno della velocità e dalla direzione del motore
     float direction = (currentLinearSpeed_ >= 0) ? 1.0f : -1.0f;
-    if (isReversed) direction *= -1.0f;
+    if (reversed_) direction *= -1.0f;
     
     // Aggiorna le coordinate (in un sistema di riferimento locale)
     // Nota: Queste coordinate sono relative alla posizione iniziale del motore
     // e andranno trasformate nel sistema di riferimento globale dal PositionManager
-    x_ += distance * direction;
+    x_ += distance * cos(theta_);
+    y_ += distance * sin(theta_);
     
     // Aggiorna la distanza percorsa (sempre positiva)
     distanceTraveled_ += abs(distance);
     
     // Aggiorna il timestamp
     lastUpdateTime_ = millis() / 1000.0f;
+}
+
+void DriveMotor::updateSpeedEstimate() {
+    unsigned long currentTime = millis();
+    
+    // Calcola il tempo trascorso dall'ultimo aggiornamento in secondi
+    float dt = (currentTime - lastSpeedUpdate_) / 1000.0f;
+    
+    if (dt > 0 && lastSpeedUpdate_ > 0) {
+        // Calcola la velocità in m/s
+        float distancePerPulse = wheelCircumference_ / pulsesPerRevolution_;
+        long deltaCount = encoderCount_ - lastEncoderCount_;
+        
+        // Calcola la velocità lineare (m/s)
+        currentLinearSpeed_ = (deltaCount * distancePerPulse) / dt;
+        
+        // Aggiorna la distanza percorsa
+        distanceTraveled_ += deltaCount * distancePerPulse;
+        
+        // Aggiorna il conteggio precedente
+        lastEncoderCount_ = encoderCount_;
+    }
+    
+    // Aggiorna il tempo dell'ultimo aggiornamento
+    lastSpeedUpdate_ = currentTime;
 }

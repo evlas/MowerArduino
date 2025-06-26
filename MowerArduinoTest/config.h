@@ -114,7 +114,7 @@
 #define MAX_LINEAR_SPEED 1.1f           // [m/s] Velocità massima in avanti/indietro
 #define MAX_ANGULAR_SPEED 1.0f          // [rad/s] Velocità angolare massima
 #define MAX_LINEAR_ACCEL 0.5f           // [m/s²] Accelerazione lineare massima
-#define MAX_LINEAR_DECEL 0.5f           // [m/s²] Decelerazione lineare massima
+#define MAX_LINEAR_DECEL 0.6f           // [m/s²] Decelerazione lineare massima
 #define MAX_ANGULAR_ACCEL 1.0f          // [rad/s²] Accelerazione angolare massima
 
 // Tolleranze
@@ -176,14 +176,13 @@
 // Motor speed range is now 0-799 (for 20kHz PWM with ICR = 799)
 #define MAX_MOTOR_SPEED 799
 #define MIN_MOTOR_SPEED -799
-#define DEFAULT_MOTOR_SPEED 750  // ~94% of max speed
-#define TURN_MOTOR_SPEED 300     // ~37.5% of max speed for turns
+#define DEFAULT_MOTOR_SPEED 95.0f  // Velocità predefinita (95%)
 
 #define ENABLE_BLADE_MOTORS
 #define BLADE_MOTORS_NUM      2        //Numero di motori per le lame di taglio
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
 //#define BLADE_MOTOR_TIPO2  // Motori Brushed 
-#define DEFAULT_BLADE_SPEED 200  // Velocità predefinita della lama (0-255)
+#define DEFAULT_BLADE_SPEED 95.0f  // Velocità predefinita della lama (95%)
 
 // --- ATTUATORI ---
 #define ENABLE_BUZZER   // Buzzer per segnalazioni acustiche

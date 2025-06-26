@@ -48,6 +48,7 @@ private:
     // Posizione del motore nel piano (per odometria)
     float x_ = 0.0f;  // Posizione X in metri
     float y_ = 0.0f;  // Posizione Y in metri
+    float theta_ = 0.0f;  // Orientamento in radianti
     float lastUpdateTime_ = 0.0f;  // Ultimo aggiornamento posizione (secondi)
     
 public:
@@ -58,12 +59,12 @@ public:
      * @param encoderPin Pin dell'encoder
      * @param wheelDiameter Diametro della ruota in metri
      * @param pulsesPerRevolution Impulsi per giro dell'encoder
-     * @param reversed Se true, inverte il senso di rotazione
+     * @param isLeft Se true, è il motore sinistro (influenza la direzione dell'encoder)
      */
     DriveMotor(uint8_t pwmPin, uint8_t dirPin, uint8_t encoderPin,
               float wheelDiameter = WHEEL_DIAMETER, 
               int pulsesPerRevolution = ENCODER_PULSES_PER_REV,
-              bool reversed = false);
+              bool isLeft = false);
     
     /**
      * @brief Inizializza il motore e l'encoder
@@ -75,53 +76,14 @@ public:
      */
     void update();
     
-    // Metodi specifici
-    
     /**
-     * @brief Restituisce la distanza percorsa in metri
-     */
-    float getDistance() const { return distanceTraveled_; }
-    
-    /**
-     * @brief Restituisce la posizione X del motore in metri
-     */
-    float getX() const { return x_; }
-    
-    /**
-     * @brief Restituisce la posizione Y del motore in metri
-     */
-    float getY() const { return y_; }
-    
-    /**
-     * @brief Restituisce la velocità lineare in m/s (alias di getLinearSpeed per compatibilità)
-     */
-    float getLinearVelocity() const { return getLinearSpeed(); }
-    
-    /**
-     * @brief Restituisce la velocità lineare in m/s
-     */
-    float getLinearSpeed() const { return currentLinearSpeed_; }
-    
-    /**
-     * @brief Restituisce la velocità angolare in rad/s
-     */
-    float getAngularSpeed() const { 
-        return (currentLinearSpeed_ * 2.0f) / wheelDiameter_; 
-    }
-    
-    /**
-     * @brief Restituisce il conteggio attuale dell'encoder
-     */
-    long getEncoderCount() const { return encoderCount_; }
-    
-    /**
-     * @brief Azzera il conteggio dell'encoder e la distanza percorsa
+     * @brief Reimposta il conteggio dell'encoder e la distanza percorsa
      */
     void resetEncoder();
     
     /**
-     * @brief Imposta la velocità target in m/s
-     * @param speed Velocità target in m/s
+     * @brief Imposta la velocità lineare target in m/s
+     * @param speed Velocità in m/s (positiva = avanti, negativa = indietro)
      */
     void setLinearSpeed(float speed);
     
@@ -132,7 +94,15 @@ public:
     void updatePosition(float dt);
     
     /**
-     * @brief Imposta la posizione del motore
+     * @brief Imposta la posizione del robot
+     * @param x Posizione X in metri
+     * @param y Posizione Y in metri
+     * @param theta Orientamento in radianti
+     */
+    void setPosition(float x, float y, float theta);
+    
+    /**
+     * @brief Imposta la posizione del motore (solo x e y)
      * @param x Posizione X in metri
      * @param y Posizione Y in metri
      */
@@ -144,6 +114,23 @@ public:
      */
     void setAngularSpeed(float omega) {
         setLinearSpeed(omega * (wheelDiameter_ / 2.0f));
+    }
+    
+    // Getters
+    long getEncoderCount() const { return encoderCount_; }
+    float getLinearSpeed() const { return currentLinearSpeed_; }
+    float getDistanceTraveled() const { return distanceTraveled_; }
+    float getX() const { return x_; }
+    float getY() const { return y_; }
+    float getTheta() const { return theta_; }
+    float getDistance() const { return distanceTraveled_; }
+    float getLinearVelocity() const { return getLinearSpeed(); }
+    
+    /**
+     * @brief Restituisce la velocità angolare in rad/s
+     */
+    float getAngularSpeed() const { 
+        return (currentLinearSpeed_ * 2.0f) / wheelDiameter_; 
     }
 };
 

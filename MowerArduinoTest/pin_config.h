@@ -45,6 +45,7 @@
 // ========================
 #define BLADE_MOTOR1_PWM_PIN 8      // PWM primo motore lama principale
 #define BLADE_MOTOR2_PWM_PIN 11      // PWM secondo motore lama principale
+#define BLADE_MOTOR_PWM_PIN 10    // PWM motore lama principale
 #define BLADE_MOTOR_DIR_PIN 9      // Direzione motore lama principale
 // ========================
 // SENSORI

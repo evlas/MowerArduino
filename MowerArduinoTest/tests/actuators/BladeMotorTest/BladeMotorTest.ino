@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include "../../../src/motors/BladeMotor.h"
+#include "BladeMotor.h"
+#include "pin_config.h"
 
-BladeMotor bladeMotor(BLADE_MOTOR1_PWM_PIN, BLADE_MOTOR1_DIR_PIN);
+BladeMotor bladeMotor(BLADE_MOTOR_PWM_PIN, BLADE_MOTOR_DIR_PIN);
 
 void setup() {
   Serial.begin(115200);
