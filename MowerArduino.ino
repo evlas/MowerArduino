@@ -24,174 +24,23 @@
 #include <Wire.h>
 
 // Include configuration
-#include "config.h"
-#include "pin_config.h"
+#include "src/config.h"
+#include "src/pin_config.h"
 
 // Include delle classi di sistema
-#include "src/functions/StateMachine.h"
+#include "src/functions/Mower.h"
 
-#include "src/handler/setup.h"
-#include "src/handler/loop.h"
-
-// SENSORS
-#ifdef ENABLE_ULTRASONIC
-#include "src/sensors/UltrasonicSensors.h"
-UltrasonicSensors ultrasonicSensors;
-#endif
-
-#ifdef ENABLE_BUMP_SENSORS
-#include "src/sensors/BumpSensors.h"
-BumpSensors bumpSensors;
-#endif 
-
-#ifdef ENABLE_PERIMETER
-#include "src/sensors/PerimeterSensors.h"
-PerimeterSensors perimeterSensors;
-#endif  
-
-#ifdef ENABLE_IMU
-#include "src/sensors/IMU.h"
-IMUModule imu;
-#endif
-
-#ifdef ENABLE_GPS
-#include "src/sensors/GPS.h"
-GPSModule gps;
-#endif
-
-// RTC
-#ifdef ENABLE_RTC
-#include <DS1302.h>
-DS1302 rtc(RTC_IO_PIN, RTC_SCLK_PIN, RTC_RST_PIN);
-#endif
-
-#ifdef ENABLE_RAIN_SENSOR
-#include "src/sensors/RainSensor.h"
-RainSensor rainSensor;
-#endif
-
-#ifdef ENABLE_BATTERY_MONITOR
-#include "src/sensors/BatterySensor.h"
-#include "src/battery/BatteryMonitor.h"
-#endif
-
-// MOTORS
-#ifdef ENABLE_DRIVE_MOTORS
-#include "src/motors/Motor.h"
-#include "src/motors/MotorController.h"
-#include "src/functions/Maneuver.h"
-MotorController motorController;
-Maneuver mowerManeuver(&motorController);
-#endif
-
-#ifdef ENABLE_BLADE_MOTOR
-#include "src/motors/BladeController.h"
-BladeController bladeController;
-#endif
-
-// ACTUATORS
-#ifdef ENABLE_BUZZER
-#include "src/actuators/Buzzer.h"
-Buzzer buzzer;
-#endif
-
-#ifdef ENABLE_DISPLAY
 #include <LiquidCrystal_I2C.h>
-#include "src/LCD/LCDManager.h"
-LCDManager lcdManager;
-#endif
+#include <DS1302.h>
 
-#ifdef ENABLE_RELAY
-#include "src/actuators/Relay.h"
-Relay relay;
-#endif
+// Inizializza il RTC
+DS1302 rtc(RTC_IO_PIN, RTC_SCLK_PIN, RTC_RST_PIN);
 
-// COMMUNICATIONS
-#ifdef ENABLE_WIFI
-#include <ArduinoJson.h>
-#include "src/communications/WiFiSerialBridge.h"
-#include "src/communications/CommandHandler.h"
+// Inizializza il display
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
-// La variabile wifiBridge è definita in WiFiSerialBridge.cpp
-extern WiFiSerialBridge wifiBridge;
-
-// Dichiarazione anticipata
-extern StateMachine mowerStateMachine;
-#ifdef ENABLE_NAVIGATION
-extern Navigation navigation;
-#endif
-
-// Definizione di commandHandler
-CommandHandler commandHandler(
-    &mowerStateMachine, 
-#ifdef ENABLE_NAVIGATION
-    &navigation
-#else
-    nullptr
-#endif
-#ifdef ENABLE_ULTRASONIC
-    , &ultrasonicSensors
-#endif
-#ifdef ENABLE_BUMP_SENSORS
-    , &bumpSensors
-#endif
-);
-#endif
-
-// FUNCTIONS
-// Include moduli funzionalità (solo se abilitati)
-#ifdef ENABLE_NAVIGATION
-#include "src/position/PositionManager.h"
-#include "src/functions/Navigation.h"
-PositionManager positionManager;
-NavigationMode navigationMode;
-
-// Initialize Navigation with proper perimeter handling
-#ifdef ENABLE_ULTRASONIC
-  #define ULTRASONIC_PTR &ultrasonicSensors
-#else
-  #define ULTRASONIC_PTR nullptr
-#endif
-
-#ifdef ENABLE_BUMP_SENSORS
-  #define BUMPER_PTR &bumpSensors
-#else
-  #define BUMPER_PTR nullptr
-#endif
-
-#ifdef ENABLE_PERIMETER
-  #define PERIMETER_PTR &perimeterSensors
-#else
-  #define PERIMETER_PTR nullptr
-#endif
-
-#pragma GCC diagnostic push
-Navigation navigation(&mowerManeuver,
-                    ULTRASONIC_PTR,
-                    BUMPER_PTR,
-                    PERIMETER_PTR,
-                    &positionManager);
-#pragma GCC diagnostic pop
-
-#undef ULTRASONIC_PTR
-#undef BUMPER_PTR
-#undef PERIMETER_PTR
-#endif
-
-#ifdef ENABLE_SAFETY
-#include "src/safety/SafetyManager.h"
-SafetyManager safety;
-#endif
-
-#ifdef ENABLE_CHARGING
-#include "src/functions/ChargingSystem.h"
-ChargingSystem chargingSystem;
-#endif
-
-#ifdef ENABLE_SCHEDULE
-#include "src/functions/Scheduler.h"
-Scheduler scheduler;
-#endif
+// Initialize Mower with motor pins
+Mower mower;
 
 /**
  * @brief Arduino setup function - called once at startup
@@ -199,9 +48,8 @@ Scheduler scheduler;
  * Initializes all system components and sets up the initial state.
  * This function is called once when the Arduino starts up.
  */
-void setup()
-{
-    setupMower();
+void setup() {
+  mower.begin();
 }
 
 /**
@@ -210,7 +58,6 @@ void setup()
  * This is the main program loop that runs continuously after setup().
  * It handles all the main functionality of the robotic mower.
  */
-void loop()
-{
-    loopMower();
+void loop() {
+  mower.update();
 }

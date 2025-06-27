@@ -1,6 +1,6 @@
 #include "Maneuver.h"
-#include "../config.h"  // Per le costanti di velocità
-#include "../motors/DriveMotor/DriveMotor.h"
+#include "config.h"  // Per le costanti di velocità
+#include "DriveMotor.h"
 #include "PositionManager.h"  // Includi l'header di PositionManager
 
 

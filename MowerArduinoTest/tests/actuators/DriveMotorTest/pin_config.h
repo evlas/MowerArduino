@@ -1,1 +1,0 @@
-/home/vito/Arduino/GitHub/MowerArduino/MowerArduinoTest/pin_config.h

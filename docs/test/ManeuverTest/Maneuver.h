@@ -2,8 +2,8 @@
 #define MANEUVER_H
 
 #include "Arduino.h"
-#include "../motors/DriveMotor/DriveMotor.h"  // Include le costanti di configurazione
-#include "../config.h"
+#include "DriveMotor.h"  // Include le costanti di configurazione
+#include "config.h"
 
 // Forward declarations
 class DriveMotor;
