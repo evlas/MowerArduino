@@ -5,7 +5,7 @@
 #include "../functions/MowerTypes.h"
 
 void IdleState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("IDLE: Entering state"));
 #endif
     
@@ -19,7 +19,7 @@ void IdleState::update(Mower& mower) {
 }
 
 void IdleState::exit(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("IDLE: Exiting state"));
 #endif
 }

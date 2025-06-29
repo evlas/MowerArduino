@@ -28,10 +28,22 @@
 #include "src/pin_config.h"
 
 // Include system classes
+#include "src/LCD/LCDMenu.h"
 #include "src/functions/Mower.h"
+//#include "src/communications/RemoteCommand.h"
+//#include "src/communications/WiFiRemote.h"
 
-// Create global Mower instance
-Mower mower;
+// Create global LCDMenu instance
+LCDMenu lcdMenu;
+
+// Create global Mower instance with LCDMenu reference
+Mower mower(lcdMenu);
+
+// Create remote command instance
+//RemoteCommand remoteCmd(mower);
+
+// Create WiFi remote instance
+//WiFiRemote wifiRemote(remoteCmd);
 
 /**
  * @brief Arduino setup function - called once at startup
@@ -40,19 +52,49 @@ Mower mower;
  * This function is called once when the Arduino starts up.
  */
 void setup() {
-    // Initialize serial communication for debugging
-    #ifdef ENABLE_DEBUG
+    Wire.begin();
+    #ifdef DEBUG_MODE
+    // Inizializza la seriale debug solo se il debug è abilitato
     SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
-    while (!SERIAL_DEBUG) {
-        ; // Wait for serial port to connect (for native USB)
-    }
-    SERIAL_DEBUG.println(F("\n=== Mower System Starting ==="));
+    // Attendi che la seriale sia pronta (solo per alcune schede)
+    // Piccola pausa per stabilizzare la connessione
+    delay(100);
+    // Invia caratteri di test per sincronizzazione
+    SERIAL_DEBUG.println();
+    SERIAL_DEBUG.println();
+    SERIAL_DEBUG.println(F("=== Mower System Starting ==="));
+    SERIAL_DEBUG.println(F("=== entra in lcd ==="));
     #endif
     
+    // Initialize the LCD menu
+    lcdMenu.begin();
+    #ifdef DEBUG_MODE
+      SERIAL_DEBUG.println(F("=== esce da lcd ==="));
+    #endif  
     // Initialize the mower system
-    mower.init();
+    mower.begin();
+/*    
+    // Inizializza il controllo remoto
+    remoteCmd.begin();
     
-    #ifdef ENABLE_DEBUG
+    // Imposta i gestori degli eventi
+    remoteCmd.setStatusUpdateHandler([](const struct RemoteStatus& status) {
+        // Qui puoi gestire gli aggiornamenti di stato
+        // Ad esempio, inviare notifiche o aggiornare display
+        #ifdef ENABLE_DEBUG
+        SERIAL_DEBUG.print("Status update - Battery: ");
+        SERIAL_DEBUG.print(status.batteryLevel);
+        SERIAL_DEBUG.print("% ");
+        SERIAL_DEBUG.print("Moving: ");
+        SERIAL_DEBUG.println(status.isMoving ? "Yes" : "No");
+        #endif
+    });
+    
+    // Inizializza la comunicazione WiFi
+    wifiRemote.begin(SERIAL_WIFI_BAUD);
+*/
+    
+    #ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("System initialized"));
     SERIAL_DEBUG.print(F("Initial state: "));
     SERIAL_DEBUG.println(mower.stateToString(mower.getState()));
@@ -68,7 +110,12 @@ void setup() {
 void loop() {
     // Update the mower (this will handle state updates, sensors, etc.)
     mower.update();
-    
+/*    
+    // Aggiorna il controllo remoto
+    remoteCmd.update();
+    // Gestisci la comunicazione WiFi
+    wifiRemote.update();
+*/    
     // Add a small delay to prevent watchdog resets
     delay(10);
 }

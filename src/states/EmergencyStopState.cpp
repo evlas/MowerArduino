@@ -8,7 +8,7 @@
 const unsigned long EMERGENCY_BEEP_INTERVAL = 2000;
 
 void EmergencyStopState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("EMERGENCY: Entering state"));
 #endif
     
@@ -66,7 +66,7 @@ void EmergencyStopState::update(Mower& mower) {
 }
 
 void EmergencyStopState::exit(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("EMERGENCY: Exiting state"));
 #endif
     
@@ -95,7 +95,7 @@ void EmergencyStopState::exit(Mower& mower) {
 }
 
 void EmergencyStopState::handleEvent(Mower& mower, Event event) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.print(F("EMERGENCY: Handling event "));
     SERIAL_DEBUG.println(mower.eventToString(event));
 #endif
@@ -129,7 +129,7 @@ void EmergencyStopState::handleEvent(Mower& mower, Event event) {
             
         // Ignora tutti gli altri eventi durante l'emergenza
         default:
-#ifdef DEBUG
+#ifdef DEBUG_MODE
             SERIAL_DEBUG.print(F("EMERGENCY: Ignoring event "));
             SERIAL_DEBUG.println(mower.eventToString(event));
 #endif

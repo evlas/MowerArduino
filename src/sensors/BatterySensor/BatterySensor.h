@@ -11,8 +11,20 @@
 #ifndef BATTERY_SENSOR_H
 #define BATTERY_SENSOR_H
 
+#include <Arduino.h>
 #include <Wire.h>
 #include <INA226_WE.h>
+
+// Battery states
+typedef enum {
+    BATTERY_STATE_ERROR,
+    BATTERY_STATE_CRITICAL,
+    BATTERY_STATE_EMPTY,
+    BATTERY_STATE_CHARGING,
+    BATTERY_STATE_DISCHARGING,
+    BATTERY_STATE_FULL,
+    BATTERY_STATE_IDLE
+} BatteryState;
 
 /**
  * @class BatterySensor
@@ -24,7 +36,15 @@
  * high-level battery status information.
  */
 class BatterySensor {
+private:
+    INA226_WE ina226;
+    bool connected;
+    float voltageFiltered;
+    float currentFiltered;
+    unsigned long lastUpdate;
+    
 public:
+    BatterySensor();
     // ===== Initialization =====
     
     /**
@@ -75,9 +95,9 @@ public:
     
     /**
      * @brief Check if the sensor is connected and responding
-     * @return true if the sensor is connected, false otherwise
+     * @return true if the sensor is connected and has recent updates, false otherwise
      */
-    bool isConnected() const { return connected; }
+    bool isConnected() { return connected && (millis() - lastUpdate < 5000); }
     
     // ===== Battery Information =====
     
@@ -100,6 +120,12 @@ public:
     float getPower() { return readPower(); }
     
     /**
+     * @brief Get the current battery state
+     * @return BatteryState enum indicating the current state
+     */
+    BatteryState getBatteryState();
+    
+    /**
      * @brief Calculate the estimated battery percentage
      * @return Battery percentage (0-100%)
      * 
@@ -109,28 +135,23 @@ public:
      */
     float getBatteryPercentage();
     
-    /**
-     * @brief Check if the battery is currently charging
-     * @return true if charging, false otherwise
-     */
-    bool isCharging() { return connected && (readCurrent() < -0.1f); }  // Negative current = charging
+    // Helper methods for common state checks
+    bool isCharging() { return getBatteryState() == BATTERY_STATE_CHARGING; }
+    bool isCritical() { return getBatteryState() == BATTERY_STATE_CRITICAL; }
+    bool isFullyCharged() { return getBatteryState() == BATTERY_STATE_FULL; }
     
     /**
      * @brief Check if the battery is currently discharging
      * @return true if discharging, false otherwise
      */
-    bool isDischarging() { return connected && (readCurrent() > 0.1f); } // Positive current = discharging
+    bool isDischarging() { return getBatteryState() == BATTERY_STATE_DISCHARGING; }
     
     /**
      * @brief Check if the battery is fully charged
-     * @param threshold Voltage threshold for considering the battery full (default: 4.2V)
-     * @return true if the battery voltage is at or above the threshold, false otherwise
+     * @return true if the battery is fully charged, false otherwise
      */
-    bool isBatteryFull(float threshold = 4.2f) { return connected && (readVoltage() >= threshold); }
+    bool isBatteryFull() { return isFullyCharged(); }
 
-private:
-    INA226_WE ina226;       ///< INA226 power monitor instance
-    bool connected = false; ///< Connection status of the sensor
 };
 
 /**

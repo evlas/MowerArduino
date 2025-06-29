@@ -16,11 +16,13 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
+#include "../LCD/LCDMenu.h"
 
 /**
  * @brief State and event type definitions for the mower state machine.
  */
 #include "MowerTypes.h"
+
 
 // Forward declarations to resolve circular dependencies
 class MowerState;
@@ -85,13 +87,6 @@ public:
      * @name Initialization
      * @{
      */
-    
-    /**
-     * @brief Initialize all hardware components and system state
-     * @details This method initializes all sensors, motors, and system components.
-     * It should be called once during system startup.
-     */
-    void initializeComponents();
     
     /**
      * @brief Get the Idle state instance
@@ -282,9 +277,9 @@ public:
     
     /**
      * @brief Construct a new Mower object
-     * @details Initializes all member variables to their default values
+     * @param lcdMenu Reference to the LCDMenu instance
      */
-    Mower();
+    explicit Mower(LCDMenu& lcdMenu);
     
     /**
      * @brief Initialize the mower system
@@ -340,14 +335,9 @@ public:
     /**
      * @name User Interface
      * @{
-     */
-    
-    /**
-     * @brief Update the LCD display with new content
-     * @param line1 Text for the first line
-     * @param line2 Text for the second line (optional)
-     */
-    void updateLcdDisplay(const char* line1, const char* line2 = "");
+ private:
+    // Reference to the LCDMenu instance
+    LCDMenu& lcdMenu;
     
     /**
      * @brief Clear the LCD display
@@ -356,29 +346,29 @@ public:
     
     /**
      * @brief Set the LCD cursor position
-     * @param col Column (0-15)
-     * @param row Row (0-1)
+     * @param col Column position (0-15)
+     * @param row Row position (0-1)
      */
     void setLcdCursor(uint8_t col, uint8_t row);
     
     /**
-     * @brief Print text to the LCD at current cursor position
-     * @param text Text to print
+     * @brief Print text to the LCD display
+     * @param text The text to print
      */
-    void printToLcd(const char* text);
+    void printToLcd(const String &text);
     
     /**
-     * @brief Print a number to the LCD at current cursor position
-     * @param number Integer number to print
+     * @brief Print a number to the LCD display
+     * @param number The number to print
      */
     void printToLcd(int number);
     
     /**
-     * @brief Print a floating point number to the LCD
-     * @param number Floating point number to print
-     * @param decimals Number of decimal places to show (default: 2)
+     * @brief Update the LCD display with new text
+     * @param line1 First line of text
+     * @param line2 Second line of text (optional)
      */
-    void printToLcd(float number, int decimals = 2);
+    void updateLcdDisplay(const String &line1, const String &line2 = "");
     
     /**
      * @brief Play a tone on the buzzer
@@ -671,17 +661,25 @@ public:
      * @details Verifies system safety and triggers emergency stop if needed
      */
     void checkSafety();
-    
-    /** @} */
+
+
+
+    // Dichiarazione di friend per consentire a RemoteCommand di accedere ai membri privati
+    friend class RemoteCommand;
 
 private:
+    // Reference to the LCD menu
+    LCDMenu& lcdMenu;              ///< Reference to the LCD menu instance
+
     // Current and next state pointers for state machine
     MowerState* currentState_;      ///< Current state of the mower state machine
     MowerState* nextState_;         ///< Next state to transition to
+
     
     // Internal state variables
     bool emergencyStopActive_;      ///< Flag indicating if emergency stop is active
-    bool bladesRunning_;            ///< Flag indicating if blades are currently running
+    bool isLifted_;                ///< Flag indicating if the mower is lifted
+    bool bladesRunning_;            ///< Flag indicating if blades are running
     float leftMotorSpeed_;          ///< Current speed of left motor (-1.0 to 1.0)
     float rightMotorSpeed_;         ///< Current speed of right motor (-1.0 to 1.0)
     float bladeSpeed_;              ///< Current blade speed (0.0 to 1.0)
@@ -709,6 +707,9 @@ private:
     static const float OBSTACLE_DETECTION_DISTANCE = 30.0f; ///< Distance threshold for obstacle detection (cm)
     static const unsigned long DOCKING_CONFIRMATION_TIME = 2000; ///< Time to confirm docking (ms)
     
+    // Backlight control
+    unsigned long lastLcdActivity;     ///< Timestamp of last LCD activity for backlight timeout
+    
     /**
      * @brief Ultrasonic sensor identifiers
      */
@@ -720,13 +721,12 @@ private:
     };
     
     // Hardware components
-    LiquidCrystal_I2C lcd;      ///< LCD display controller
-    DriveMotor leftMotor;       ///< Left drive motor controller
-    DriveMotor rightMotor;      ///< Right drive motor controller
-    BladeMotor bladeMotor;      ///< Blade motor controller
-    Buzzer buzzer;              ///< Buzzer for audio feedback
-    Relay motorRelay;           ///< Motor power relay
-    Relay chargingRelay;        ///< Battery charging relay
+    DriveMotor leftMotor;            ///< Left drive motor controller
+    DriveMotor rightMotor;           ///< Right drive motor controller
+    BladeMotor bladeMotor;           ///< Blade motor controller
+    Buzzer buzzer;                   ///< Buzzer for audio feedback
+    Relay motorRelay;                ///< Motor power relay
+    Relay chargingRelay;             ///< Battery charging relay
     
     // Sensor modules
     BatterySensor batterySensor;        ///< Battery monitoring

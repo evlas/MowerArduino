@@ -1,4 +1,5 @@
 #include "ChargingState.h"
+#include "../config.h"  // Per le costanti di configurazione
 #include "../functions/Mower.h"
 #include "IdleState.h"
 #include "EmergencyStopState.h"
@@ -13,10 +14,10 @@ const unsigned long MAX_CHARGING_TIME_MS = 2 * 60 * 60 * 1000UL;
 // Usa BATTERY_CHECK_INTERVAL da config.h
 
 void ChargingState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("CHARGING: Entering state"));
     SERIAL_DEBUG.print(F("Battery level: "));
-    SERIAL_DEBUG.print(mower.batteryLevel_);
+    SERIAL_DEBUG.print(mower.getBatteryLevel());
     SERIAL_DEBUG.println(F("%"));
 #endif
     
@@ -26,7 +27,7 @@ void ChargingState::enter(Mower& mower) {
     
     // Attiva la ricarica
     if (!mower.enableCharging(true)) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("ERROR: Failed to enable charging"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
@@ -56,7 +57,7 @@ void ChargingState::update(Mower& mower) {
     
     // Verifica il tempo di ricarica massimo
     if (currentTime - lastBatteryCheck_ > MAX_CHARGING_TIME_MS) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("CHARGING: Maximum charging time exceeded"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
@@ -64,13 +65,13 @@ void ChargingState::update(Mower& mower) {
     }
     
     // Controlla periodicamente il livello della batteria
-    if (currentTime - lastBatteryCheck_ > BATTERY_CHECK_INTERVAL) {
+    if (currentTime - lastBatteryCheck_ > BATTERY_UPDATE_INTERVAL) {
         lastBatteryCheck_ = currentTime;
         
         // Aggiorna il display con il livello della batteria
         int batteryLevel = static_cast<int>(mower.getBatteryLevel());
         
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.print(F("CHARGING: Battery level "));
         SERIAL_DEBUG.print(batteryLevel);
         SERIAL_DEBUG.println(F("%"));
@@ -91,7 +92,7 @@ void ChargingState::update(Mower& mower) {
                 // Aggiorna il display
                 mower.updateLcdDisplay("Charging Complete!", "Battery: 100%");
                 
-#ifdef DEBUG
+#ifdef DEBUG_MODE
                 SERIAL_DEBUG.println(F("CHARGING: Battery fully charged"));
 #endif
             }
@@ -112,16 +113,16 @@ void ChargingState::update(Mower& mower) {
 }
 
 void ChargingState::exit(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("CHARGING: Exiting state"));
     SERIAL_DEBUG.print(F("Final battery level: "));
-    SERIAL_DEBUG.print(mower.batteryLevel_);
+    SERIAL_DEBUG.print(mower.getBatteryLevel());
     SERIAL_DEBUG.println(F("%"));
 #endif
     
     // Disattiva la ricarica quando si esce dallo stato
     if (!mower.enableCharging(false)) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("WARNING: Failed to disable charging"));
 #endif
     }
@@ -131,7 +132,7 @@ void ChargingState::exit(Mower& mower) {
 }
 
 void ChargingState::handleEvent(Mower& mower, Event event) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.print(F("CHARGING: Handling event "));
     SERIAL_DEBUG.println(mower.eventToString(event));
 #endif
@@ -182,7 +183,7 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
             if (mower.isBatteryCharged()) {
                 mower.setState(mower.getMowingState());
             } else {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
                 SERIAL_DEBUG.println(F("CHARGING: Battery not sufficiently charged to start mowing"));
 #endif
                 // Segnale acustico per indicare che non può partire
@@ -207,7 +208,7 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
             
         // Ignora altri eventi durante la ricarica
         default:
-#ifdef DEBUG
+#ifdef DEBUG_MODE
             SERIAL_DEBUG.print(F("CHARGING: Ignoring event "));
             SERIAL_DEBUG.println(mower.eventToString(event));
 #endif

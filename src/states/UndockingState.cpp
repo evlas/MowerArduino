@@ -11,7 +11,7 @@ const unsigned long ROTATION_DURATION = 1000;   // 1 secondo di rotazione
 const unsigned long MAX_UNDOCKING_TIME = 10000;  // 10 secondi massimi per l'undocking
 
 void UndockingState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("UNDOCKING: Entering state"));
 #endif
     
@@ -42,7 +42,7 @@ void UndockingState::update(Mower& mower) {
     
     // Verifica il timeout di sicurezza
     if (elapsedTime > MAX_UNDOCKING_TIME) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("UNDOCKING: Timeout during undocking"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
@@ -74,7 +74,7 @@ void UndockingState::update(Mower& mower) {
         // Aggiorna il tempo di inizio della rotazione
         undockingStartTime_ = currentTime;
         
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("UNDOCKING: Starting rotation"));
 #endif
     }
@@ -108,7 +108,7 @@ void UndockingState::update(Mower& mower) {
 }
 
 void UndockingState::exit(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("UNDOCKING: Exiting state"));
 #endif
     
@@ -139,7 +139,7 @@ void UndockingState::exit(Mower& mower) {
 }
 
 void UndockingState::handleEvent(Mower& mower, Event event) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.print(F("UNDOCKING: Handling event "));
     SERIAL_DEBUG.println(mower.eventToString(event));
 #endif
@@ -194,7 +194,7 @@ void UndockingState::handleEvent(Mower& mower, Event event) {
             
         // Ignora altri eventi durante l'undocking
         default:
-#ifdef DEBUG
+#ifdef DEBUG_MODE
             SERIAL_DEBUG.print(F("UNDOCKING: Ignoring event "));
             SERIAL_DEBUG.println(mower.eventToString(event));
 #endif

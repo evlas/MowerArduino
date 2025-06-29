@@ -1,8 +1,8 @@
-#include "LCDMenu.h"
+#include <Arduino.h>  // Deve essere incluso per primo per Serial
+#include <Wire.h>     // Necessario per I2C
 #include <EEPROM.h>
-
-// Initialize static member
-LCDMenu lcdMenu;
+#include "LCDMenu.h"
+#include "../config.h" // Ensure DEBUG_MODE and debug macros are available
 
 LCDMenu::LCDMenu() 
     : lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE),
@@ -16,14 +16,30 @@ LCDMenu::LCDMenu()
 }
 
 void LCDMenu::begin() {
+   // Inizializza LCD
+    DEBUG_PRINTLN("Inizializzazione LCD...");
     lcd.begin(16, 2);
+    delay(50);   // Piccola pausa dopo l'inizializzazione LCD
+    
     lcd.backlight();
+    delay(50);   // Piccola pausa dopo l'accensione retroilluminazione
     lcd.clear();
+    delay(50);   // Piccola pausa dopo il clear
     lcd.print("Mower Control");
+    #ifdef DEBUG_MODE
+        DEBUG_PRINTLN("Initializing buttons...");
+    #endif
     lcd.setCursor(0, 1);
     lcd.print("Initializing...");
     
     // Initialize buttons
+    #ifdef DEBUG_MODE
+        DEBUG_PRINTLN("Loading PID values from EEPROM...");
+    #endif
+
+    #ifdef DEBUG_MODE
+        DEBUG_PRINTLN("LCD initialization complete");
+    #endif
     pinMode(START_BUTTON_PIN, INPUT_PULLUP);
     pinMode(PLUS_BUTTON_PIN, INPUT_PULLUP);
     pinMode(MINUS_BUTTON_PIN, INPUT_PULLUP);
@@ -45,6 +61,9 @@ void LCDMenu::update() {
     
     if (digitalRead(START_BUTTON_PIN) == LOW) {
         lastButtonPress = currentTime;
+    #ifdef DEBUG_MODE
+        DEBUG_PRINTLN("Display updated after button press");
+    #endif
         handleButtonPress(START_BUTTON_PIN);
     } 
     else if (digitalRead(PLUS_BUTTON_PIN) == LOW) {

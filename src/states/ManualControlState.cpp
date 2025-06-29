@@ -3,7 +3,7 @@
 #include "../functions/MowerTypes.h"
 
 void ManualControlState::enter(Mower& mower) {
-#ifdef SERIAL_DEBUG
+#ifdef DEBUG_MODE
     Serial.println(F("Entering ManualControlState"));
 #endif
     // Inizializza lo stato di controllo manuale
@@ -16,7 +16,7 @@ void ManualControlState::update(Mower& mower) {
 }
 
 void ManualControlState::exit(Mower& mower) {
-#ifdef SERIAL_DEBUG
+#ifdef DEBUG_MODE
     Serial.println(F("Exiting ManualControlState"));
 #endif
     // Pulizia delle risorse se necessario

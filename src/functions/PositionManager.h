@@ -65,8 +65,12 @@ class PositionManager {
         // Ottiene la posizione corrente
         RobotPosition getPosition();
         
-        // Gestione movimenti
-        void moveStraight(float distance, float speed);
+        /**
+         * @brief Muove il robot in linea retta
+         * @param speedPercent Velocità in percentuale (-100% a 100%)
+         * @param distanceMeters Distanza in metri (0 per movimento continuo)
+         */
+        void moveStraight(float speedPercent, float distanceMeters = 0);
         void turn(float angle, float speed);
         void moveArc(float radius, float angle, float speed);
         

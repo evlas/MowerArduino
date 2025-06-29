@@ -109,15 +109,21 @@ void DriveMotor::resetEncoder() {
     interrupts();
 }
 
-void DriveMotor::setLinearSpeed(float speed) {
-    // Limita la velocità al massimo consentito
-    speed = constrain(speed, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED);
+void DriveMotor::setLinearSpeed(float speedPercent) {
+    // Limita la velocità tra -100% e 100%
+    speedPercent = constrain(speedPercent, -MAX_LINEAR_SPEED_PERCENT, MAX_LINEAR_SPEED_PERCENT);
     
-    // Converti da m/s a percentuale (-100% a 100%)
-    float percent = (speed / MAX_LINEAR_SPEED) * 100.0f;
+    // Se la velocità è molto bassa, ferma il motore
+    if (abs(speedPercent) < 0.1f) {
+        setSpeed(0);
+        return;
+    }
     
-    // Imposta la velocità target
-    setSpeed(percent);
+    // Imposta direttamente la velocità in percentuale
+    setSpeed(speedPercent);
+    
+    // Aggiorna la velocità lineare corrente per i calcoli di posizione
+    currentLinearSpeed_ = (speedPercent / 100.0f) * MAX_LINEAR_SPEED;
 }
 
 // Metodo per la gestione dell'interrupt

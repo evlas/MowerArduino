@@ -2,6 +2,7 @@
 #include "../config.h"  // Per le costanti di configurazione
 #include "../pin_config.h"
 #include <Arduino.h>
+#include "../LCD/LCDMenu.h"
 
 // Includi tutti gli stati
 #include "../states/IdleState.h"
@@ -14,7 +15,7 @@
 
 // ---------------------------------------------------------------------------
 // Costruttore
-Mower::Mower() : 
+Mower::Mower(LCDMenu& lcdMenu) : 
     currentState_(nullptr),
     emergencyStopActive_(false), 
     bladesRunning_(false), 
@@ -37,8 +38,8 @@ Mower::Mower() :
     leftMotor(MOTOR_LEFT_PWM_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_REVERSE),
     rightMotor(MOTOR_RIGHT_PWM_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_REVERSE),
     bladeMotor(MOTOR_BLADE_PWM_PIN, MOTOR_BLADE_DIR_PIN, MOTOR_BLADE_REVERSE),
-    // Inizializza il display LCD
-    lcd(0x27, 16, 2),  // Indirizzo I2C e dimensioni del display
+    // Inizializza il riferimento a LCDMenu
+    lcdMenu(lcdMenu),
     // Inizializza i sensori con i costruttori predefiniti
     // I pin verranno impostati nel metodo initializeComponents()
     batterySensor(),
@@ -47,23 +48,19 @@ Mower::Mower() :
     imu(),
     rainSensor()
 {
-    // Nessuna inizializzazione aggiuntiva necessaria qui
+    // Inizializza i relè
+    motorRelay.begin(RELAY_MOTORS_PIN);
+    chargingRelay.begin(RELAY_CHARGING_PIN);
 }
 
 void Mower::begin() {
     // Initialize serial communication for debug if enabled
-    #ifdef ENABLE_DEBUG
+    #ifdef DEBUG_MODE
         SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
-        DEBUG_PRINTLN("Debug serial initialized");
+//        DEBUG_PRINTLN("Debug serial initialized");
     #endif
     
-    // Inizializza il display LCD
-    lcd.begin(16, 2);
-    lcd.backlight();
-    lcd.setCursor(0, 0);
-    lcd.print("Mower Robot");
-    lcd.setCursor(0, 1);
-    lcd.print("Avvio...");
+    // Il display LCD è gestito dalla classe LCDMenu
     
     // Inizializza il sensore di batteria
     batterySensor.begin();
@@ -90,17 +87,12 @@ void Mower::begin() {
 
     Wire.begin();
 
-    // Initialize LCD
-    lcd.begin(16, 2);  // Set up the LCD's number of columns and rows
-    lcd.backlight();   // Turn on backlight
-    lcd.clear();       // Clear the display
-    lcd.setCursor(0, 0);
-    lcd.print("Mower");
-    lcd.setCursor(0, 1);
-    lcd.print("Starting...");
+    // Initialize LCD display
+    lcdMenu.print("Mower");
+    lcdMenu.setCursor(0, 1);
+    lcdMenu.print("Starting...");
     
     // Initialize actuators
-    buzzer.begin();
     motorRelay.begin(RELAY_MOTORS_PIN);
     chargingRelay.begin(RELAY_CHARGING_PIN);
        
@@ -128,11 +120,11 @@ void Mower::begin() {
 
     delay(5000);
 
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Mower");
-    lcd.setCursor(0, 1);
-    lcd.print("Started!");
+    lcdMenu.clear();
+    lcdMenu.setCursor(0, 0);
+    lcdMenu.print("Mower");
+    lcdMenu.setCursor(0, 1);
+    lcdMenu.print("Started!");
 
     // Play startup sound
     buzzer.startupSound();
@@ -174,7 +166,7 @@ void Mower::update() {
     
     // Ulteriori controlli di sicurezza
     checkSafety();
-
+    
     // Puoi aggiungere logging o debug qui se necessario
 }
 
@@ -206,8 +198,8 @@ void Mower::startBlades() {
 }
 
 void Mower::setBladeSpeed(float speed) {
-    // Assicurati che la velocità sia nel range corretto (0.0 - 1.0)
-    bladeSpeed_ = constrain(speed, 0.0f, 1.0f);
+    // Assicurati che la velocità sia nel range corretto (0.0 - 100.0)
+    bladeSpeed_ = constrain(speed, 0.0f, 100.0f);
     
     if (emergencyStopActive_) {
         bladeSpeed_ = 0;
@@ -254,8 +246,8 @@ void Mower::stopBlades() {
 }
 
 void Mower::setLeftMotorSpeed(float speed) {
-    // Assicurati che la velocità sia nel range corretto (-1.0 - 1.0)
-    leftMotorSpeed_ = constrain(speed, -1.0f, 1.0f);
+    // Assicurati che la velocità sia nel range corretto (-100.0 - 100.0)
+    leftMotorSpeed_ = constrain(speed, -100.0f, 100.0f);
     
     if (!emergencyStopActive_) {
         // Imposta la velocità del motore sinistro
@@ -270,8 +262,8 @@ void Mower::setLeftMotorSpeed(float speed) {
 }
 
 void Mower::setRightMotorSpeed(float speed) {
-    // Assicurati che la velocità sia nel range corretto (-1.0 - 1.0)
-    rightMotorSpeed_ = constrain(speed, -1.0f, 1.0f);
+    // Assicurati che la velocità sia nel range corretto (-100.0 - 100.0)
+    rightMotorSpeed_ = constrain(speed, -100.0f, 100.0f);
     
     if (!emergencyStopActive_) {
         // Imposta la velocità del motore destro
@@ -320,56 +312,6 @@ void Mower::stopMotors() {
 
 void Mower::stopBuzzer() {
     buzzer.stop();
-}
-
-// Gestione stato
-void Mower::init() {
-    // Inizializza lo stato iniziale
-    currentState_ = &getIdleState();
-    currentState_->enter(*this);
-    
-    // Inizializza i componenti hardware
-    initializeComponents();
-}
-
-void Mower::initializeComponents() {
-    // Inizializza il display LCD
-    lcd.begin(16, 2);  // Inizializza il display 16x2
-    lcd.backlight();
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Mower Startup");
-    
-    // Inizializza i motori
-    leftMotor.begin();
-    rightMotor.begin();
-    bladeMotor.begin();
-    
-    // Inizializza il sensore di batteria
-    if (!batterySensor.begin()) {
-        #ifdef DEBUG
-        SERIAL_DEBUG.println(F("Failed to initialize battery sensor!"));
-        #endif
-    }
-    
-    // Inizializza i sensori di urto
-    bumpSensors.begin();
-    
-    // Inizializza i sensori ad ultrasuoni
-    ultrasonicSensors.begin();
-    
-    // Inizializza l'IMU
-    imu.begin();
-    
-    // Inizializza il sensore di pioggia
-    rainSensor.begin();
-    
-    // Inizializza il buzzer
-    buzzer.begin();
-    
-    // Inizializza i relè
-    motorRelay.begin(RELAY_MOTORS_PIN);
-    chargingRelay.begin(RELAY_CHARGING_PIN);
 }
 
 // Update method is already implemented above
@@ -778,6 +720,64 @@ State Mower::getState() const {
     return currentState_ ? currentState_->getStateType() : State::ERROR; 
 }
 
+// Implementazione di setState(State)
+void Mower::setState(State newState) {
+    DEBUG_PRINT("Cambio stato da: ");
+    DEBUG_PRINT(stateToString(getState()));
+    DEBUG_PRINT(" a: ");
+    DEBUG_PRINTLN(stateToString(newState));
+    
+    switch (newState) {
+        case State::IDLE:
+            changeState(getIdleState());
+            break;
+        case State::MOWING:
+            changeState(getMowingState());
+            break;
+        case State::DOCKING:
+            changeState(getDockingState());
+            break;
+        case State::UNDOCKING:
+            changeState(getUndockingState());
+            break;
+        case State::CHARGING:
+            changeState(getChargingState());
+            break;
+        case State::EMERGENCY_STOP:
+            changeState(getEmergencyStopState());
+            break;
+        case State::LIFTED:
+            changeState(getLiftedState());
+            break;
+        case State::ERROR:
+            changeState(getErrorState());
+            break;
+        default:
+            DEBUG_PRINTLN("Stato non valido");
+            break;
+    }
+}
+
+// Implementazione di stateToString
+const char* Mower::stateToString(State state) const {
+    switch (state) {
+        case State::IDLE: return "IDLE";
+        case State::MOWING: return "MOWING";
+        case State::DOCKING: return "DOCKING";
+        case State::CHARGING: return "CHARGING";
+        case State::EMERGENCY_STOP: return "EMERGENCY_STOP";
+        case State::MANUAL_CONTROL: return "MANUAL_CONTROL";
+        case State::ERROR: return "ERROR";
+        case State::LIFTED: return "LIFTED";
+        case State::PAUSED: return "PAUSED";
+        case State::SLEEP: return "SLEEP";
+        case State::RAIN_DELAY: return "RAIN_DELAY";
+        case State::MAINTENANCE_NEEDED: return "MAINTENANCE_NEEDED";
+        case State::ROS_CONTROL: return "ROS_CONTROL";
+        default: return "UNKNOWN";
+    }
+}
+
 // Il metodo setStateMachine è stato rimosso in favore del nuovo sistema a stati basato su MowerState
 
 // I metodi getBatteryPercentage(), getUptime(), isRaining(), isObstacleDetected(),
@@ -894,36 +894,7 @@ void Mower::printDebugInfo() const {
     Serial.println("=======================");
 }
 
-// Implementazione dei metodi per il display LCD
-void Mower::updateLcdDisplay(const char* line1, const char* line2) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(line1);
-    if (line2) {
-        lcd.setCursor(0, 1);
-        lcd.print(line2);
-    }
-}
-
-void Mower::clearLcdDisplay() {
-    lcd.clear();
-}
-
-void Mower::setLcdCursor(uint8_t col, uint8_t row) {
-    lcd.setCursor(col, row);
-}
-
-void Mower::printToLcd(const char* text) {
-    lcd.print(text);
-}
-
-void Mower::printToLcd(int number) {
-    lcd.print(number);
-}
-
-void Mower::printToLcd(float number, int decimals) {
-    lcd.print(number, decimals);
-}
+// Il display LCD è gestito dalla classe LCDMenu
 
 // Implementazione del metodo per il buzzer
 void Mower::playBuzzerTone(unsigned int frequency, unsigned long duration) {
@@ -966,4 +937,37 @@ bool Mower::enableCharging(bool enable) {
     }
     
     return true;
+}
+
+// ===== LCD Display Methods =====
+void Mower::clearLcdDisplay() {
+    // Forward to LCDMenu instance
+    lcdMenu.clear();
+}
+
+void Mower::setLcdCursor(uint8_t col, uint8_t row) {
+    // Forward to LCDMenu instance
+    lcdMenu.setCursor(col, row);
+}
+
+void Mower::printToLcd(const String &text) {
+    // Forward to LCDMenu instance
+    lcdMenu.print(text);
+}
+
+void Mower::printToLcd(int number) {
+    // Forward to LCDMenu instance
+    lcdMenu.print(number);
+}
+
+void Mower::updateLcdDisplay(const String &line1, const String &line2) {
+    // Update both lines of the LCD display
+    lcdMenu.clear();
+    lcdMenu.setCursor(0, 0);
+    lcdMenu.print(line1);
+    
+    if (line2.length() > 0) {
+        lcdMenu.setCursor(0, 1);
+        lcdMenu.print(line2);
+    }
 }

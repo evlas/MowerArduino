@@ -8,7 +8,7 @@
 #include <Arduino.h>
 
 void MowingState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("MOWING: Entering state"));
 #endif
     
@@ -118,7 +118,7 @@ void MowingState::updateDisplay(Mower& mower) {
 }
 
 void MowingState::exit(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("MOWING: Exiting state"));
 #endif
     
@@ -158,7 +158,7 @@ void MowingState::handleBorderAvoidance(Mower& mower) {
 }
 
 void MowingState::handleEvent(Mower& mower, Event event) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.print(F("MOWING: Handling event "));
     SERIAL_DEBUG.println(mower.eventToString(event));
 #endif
@@ -250,7 +250,7 @@ void MowingState::handleEvent(Mower& mower, Event event) {
             
         // Ignora altri eventi durante il taglio
         default:
-#ifdef DEBUG
+#ifdef DEBUG_MODE
             SERIAL_DEBUG.print(F("MOWING: Ignoring event "));
             SERIAL_DEBUG.println(mower.eventToString(event));
 #endif

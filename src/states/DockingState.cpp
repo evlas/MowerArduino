@@ -12,7 +12,7 @@ const unsigned long DOCKING_CONFIRMATION_TIME = 3000UL;  // 3 secondi
 const unsigned long PHASE_TIMEOUT = 30000UL;  // 30 secondi per fase
 
 void DockingState::enter(Mower& mower) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("DOCKING: Entering state"));
 #endif
     
@@ -50,7 +50,7 @@ void DockingState::update(Mower& mower) {
     
     // Verifica il timeout generale di docking
     if (currentTime - dockingStartTime_ > DOCKING_TIMEOUT) {
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         SERIAL_DEBUG.println(F("DOCKING: Timeout during docking"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
@@ -135,7 +135,7 @@ void DockingState::exit(Mower& mower) {
     // Segnale acustico di fine aggancio
     mower.playBuzzerTone(1000, 200);
     
-#ifdef DEBUG
+#ifdef DEBUG_MODE
     SERIAL_DEBUG.println(F("DOCKING: Exiting state"));
 #endif
 }
@@ -230,7 +230,7 @@ void DockingState::changePhase(DockingPhase newPhase) {
         dockingPhase_ = newPhase;
         lastPhaseChangeTime_ = millis();
         
-#ifdef DEBUG
+#ifdef DEBUG_MODE
         const char* phaseName = "";
         switch (newPhase) {
             case DockingPhase::INITIAL_APPROACH: phaseName = "INITIAL_APPROACH"; break;

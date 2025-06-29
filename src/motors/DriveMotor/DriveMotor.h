@@ -2,6 +2,7 @@
 #define DRIVE_MOTOR_H
 
 #include "../MotorBase.h"
+#include "../../config.h"
 #include <Arduino.h>
 
 // Forward declaration for interrupt handler
@@ -85,7 +86,11 @@ public:
      * @brief Imposta la velocità lineare target in m/s
      * @param speed Velocità in m/s (positiva = avanti, negativa = indietro)
      */
-    void setLinearSpeed(float speed);
+    /**
+     * @brief Imposta la velocità lineare del motore
+     * @param speedPercent Velocità in percentuale (-100% a 100%)
+     */
+    void setLinearSpeed(float speedPercent);
     
     /**
      * @brief Aggiorna la posizione del motore in base alla velocità

@@ -9,6 +9,7 @@
 #include "BatterySensor.h"
 #include "../../config.h"
 #include <INA226_WE.h>
+#include <math.h>
 
 /**
  * @brief Global BatterySensor instance
@@ -17,6 +18,14 @@
  * the application to access battery information.
  */
 BatterySensor batterySensor;
+
+BatterySensor::BatterySensor() : 
+    connected(false),
+    voltageFiltered(0.0f),
+    currentFiltered(0.0f),
+    lastUpdate(0) {
+    // Initialize with default values
+}
 
 bool BatterySensor::begin() {
     // Initialize the INA226 sensor
@@ -43,14 +52,32 @@ bool BatterySensor::begin() {
 }
 
 float BatterySensor::readVoltage() {
-    // Return 0.0 if not connected, otherwise read bus voltage
-    return connected ? ina226.getBusVoltage_V() : 0.0f;
+    if (!connected) return 0.0f;
+    
+    // Read raw voltage
+    float voltage = ina226.getBusVoltage_V();
+    
+    // Apply simple low-pass filter (alpha = 0.1)
+    const float alpha = 0.1f;
+    voltageFiltered = (voltage * alpha) + (voltageFiltered * (1.0f - alpha));
+    
+    // Update timestamp
+    lastUpdate = millis();
+    
+    return voltageFiltered;
 }
 
 float BatterySensor::readCurrent() {
-    // Return 0.0 if not connected, otherwise read current in mA
-    // Note: Negative values indicate charging, positive values indicate discharging
-    return connected ? ina226.getCurrent_mA() : 0.0f;
+    if (!connected) return 0.0f;
+    
+    // Read raw current (mA)
+    float current = ina226.getCurrent_mA();
+    
+    // Apply simple low-pass filter (alpha = 0.1)
+    const float alpha = 0.1f;
+    currentFiltered = (current * alpha) + (currentFiltered * (1.0f - alpha));
+    
+    return currentFiltered;  // Returns mA, negative for charging
 }
 
 float BatterySensor::readPower() {
@@ -60,21 +87,60 @@ float BatterySensor::readPower() {
 }
 
 float BatterySensor::getBatteryPercentage() {
-    // Return 0% if sensor is not connected
     if (!connected) return 0.0f;
     
-    // Read current battery voltage
     float voltage = readVoltage();
+    float percentage = 0.0f;
     
-    // Battery voltage thresholds (adjust based on your specific battery chemistry)
-    const float minVoltage = 3.0f;  // Minimum safe voltage (0% charge)
-    const float maxVoltage = 4.2f;  // Maximum voltage (100% charge)
+    // Safety checks
+    if (voltage <= BATTERY_VOLTAGE_MIN) {
+        return 0.0f;
+    } else if (voltage >= BATTERY_VOLTAGE_MAX) {
+        return 100.0f;
+    }
     
-    // Safety checks to avoid division by zero or out-of-bounds values
-    if (voltage <= minVoltage) return 0.0f;    // At or below minimum voltage
-    if (voltage >= maxVoltage) return 100.0f;  // At or above maximum voltage
+    // Simple linear estimation (you might want to implement a more accurate curve)
+    percentage = (voltage - BATTERY_VOLTAGE_MIN) / 
+                (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN) * 100.0f;
     
-    // Linear interpolation between min and max voltage to estimate percentage
-    // This is a simple estimation - real battery discharge curves are not linear
-    return (voltage - minVoltage) / (maxVoltage - minVoltage) * 100.0f;
+    // Clamp to 0-100%
+    return constrain(percentage, 0.0f, 100.0f);
 }
+
+BatteryState BatterySensor::getBatteryState() {
+    if (!connected) return BATTERY_STATE_ERROR;
+    
+    float voltage = readVoltage();
+    float current = readCurrent();
+    
+    if (voltage <= BATTERY_VOLTAGE_CRITICAL) {
+        return BATTERY_STATE_CRITICAL;
+    } else if (voltage <= BATTERY_VOLTAGE_MIN) {
+        return BATTERY_STATE_EMPTY;
+    } else if (voltage >= BATTERY_VOLTAGE_MAX * 0.98f) {
+        return BATTERY_STATE_FULL;
+    } else if (current < -0.1f) {  // Negative current means charging
+        return BATTERY_STATE_CHARGING;
+    } else if (current > 0.1f) {   // Positive current means discharging
+        return BATTERY_STATE_DISCHARGING;
+    } else {
+        return BATTERY_STATE_IDLE;
+    }
+}
+
+// These methods are now defined inline in the header file
+// bool BatterySensor::isCharging() {
+//     return getBatteryState() == BATTERY_STATE_CHARGING;
+// }
+
+// bool BatterySensor::isCritical() {
+//     return getBatteryState() == BATTERY_STATE_CRITICAL;
+// }
+
+// bool BatterySensor::isFullyCharged() {
+//     return getBatteryState() == BATTERY_STATE_FULL;
+// }
+
+// bool BatterySensor::isConnected() {
+//     return connected && (millis() - lastUpdate < 5000);  // Consider disconnected if no updates for 5s
+// }

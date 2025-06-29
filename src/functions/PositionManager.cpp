@@ -421,21 +421,31 @@ RobotPosition PositionManager::getPosition() {
     return _currentPosition;
 }
 
-void PositionManager::moveStraight(float speed, float distance) {
+void PositionManager::moveStraight(float speedPercent, float distanceMeters) {
     if (_leftMotor && _rightMotor) {
-        // Imposta la velocità lineare per entrambi i motori (in m/s)
-        _leftMotor->setLinearSpeed(speed);
-        _rightMotor->setLinearSpeed(speed);
+        // Limita la velocità tra -100% e 100%
+        speedPercent = constrain(speedPercent, -100.0f, 100.0f);
+        
+        // Imposta la velocità lineare in percentuale
+        _leftMotor->setLinearSpeed(speedPercent);
+        _rightMotor->setLinearSpeed(speedPercent);
         
         // Se è specificata una distanza, attendi che venga raggiunta
-        if (distance > 0) {
-            // Implementa la logica per attendere il completamento del movimento
-            // (da implementare con un loop di controllo)
-            delay(static_cast<unsigned long>(distance / speed * 1000));
-            
-            // Ferma i motori
-            _leftMotor->setLinearSpeed(0);
-            _rightMotor->setLinearSpeed(0);
+        if (distanceMeters != 0) {
+            // Calcola la velocità in m/s per il calcolo del tempo
+            float speedMps = (abs(speedPercent) / 100.0f) * MAX_LINEAR_SPEED;
+            if (speedMps > 0) {
+                // Calcola il tempo necessario in millisecondi
+                unsigned long moveTime = static_cast<unsigned long>(
+                    (distanceMeters / speedMps) * 1000.0f);
+                
+                // Attendi il completamento del movimento
+                delay(moveTime);
+                
+                // Ferma i motori
+                _leftMotor->setLinearSpeed(0);
+                _rightMotor->setLinearSpeed(0);
+            }
         }
     }
 }

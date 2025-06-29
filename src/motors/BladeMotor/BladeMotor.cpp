@@ -95,9 +95,9 @@ void BladeMotor::stop() {
  * @brief Imposta la velocità dei motori
  * @param percent Velocità in percentuale (0-100%)
  */
-void BladeMotor::setSpeed(uint8_t percent) {
+void BladeMotor::setSpeed(float percent) {
     // Limita tra 0-100%
-    percent = constrain(percent, 0, 100);
+    percent = constrain(percent, 0.0f, 100.0f);
     
     // Imposta la velocità sul motore base
     MotorBase::setSpeed(percent);

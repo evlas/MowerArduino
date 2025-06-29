@@ -92,7 +92,7 @@ void MotorBase::applySpeed() {
     }
     
     int absSpeed = abs(currentSpeed_);
-    int pwmSpeed = map(absSpeed, 0, 100, 0, 255);
+    int pwmSpeed = map(absSpeed, 0, 100.0f, 0, 255);
     
     // Applica la direzione in base a reversed_
     bool forward = (currentSpeed_ >= 0);

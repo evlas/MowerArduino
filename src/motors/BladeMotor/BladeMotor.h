@@ -70,7 +70,7 @@ public:
      * @brief Imposta la velocità dei motori
      * @param percent Velocità in percentuale (0-100%)
      */
-    void setSpeed(uint8_t percent);
+    void setSpeed(float percent);
     
     /**
      * @brief Imposta la direzione di rotazione

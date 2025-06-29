@@ -113,12 +113,46 @@ class Maneuver {
     void begin();
     
     // Basic movements
-    void forward(int duration, float speed);
-    void backward(int duration, float speed);
-    void turnLeft(int angle, float speed);
-    void turnRight(int angle, float speed);
-    void rotateLeft(float speed);
-    void rotateRight(float speed);
+    /**
+     * @brief Muove il robot in avanti
+     * @param duration Durata in millisecondi (0 per movimento continuo)
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void forward(int duration, float speedPercent);
+    
+    /**
+     * @brief Muove il robot indietro
+     * @param duration Durata in millisecondi (0 per movimento continuo)
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void backward(int duration, float speedPercent);
+    
+    /**
+     * @brief Ruota il robot a sinistra di un certo angolo
+     * @param angle Angolo in gradi
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void turnLeft(int angle, float speedPercent);
+    
+    /**
+     * @brief Ruota il robot a destra di un certo angolo
+     * @param angle Angolo in gradi
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void turnRight(int angle, float speedPercent);
+    
+    /**
+     * @brief Ruota il robot a sinistra in modo continuo
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void rotateLeft(float speedPercent);
+    
+    /**
+     * @brief Ruota il robot a destra in modo continuo
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void rotateRight(float speedPercent);
+    
     void stop();
     
     // Path movement
@@ -126,10 +160,35 @@ class Maneuver {
     void moveBy(float deltaX, float deltaY, float speed);
     
     // Complex maneuvers
-    void rotate(int degrees, float speed = 50.0f);
-    void moveStraight(int distance, float speed = 50.0f);
-    void zigzag(int distance, int width, float speed = 50.0f);
-    void spiral(float maxRadius = 5.0f, float speed = 0.5f);  // maxRadius in metri, speed in m/s
+    /**
+     * @brief Ruota il robot di un certo numero di gradi
+     * @param degrees Gradi di rotazione (positivi = orario, negativi = antiorario)
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void rotate(int degrees, float speedPercent = 50.0f);
+    
+    /**
+     * @brief Muove il robot in linea retta per una certa distanza
+     * @param distance Distanza in centimetri (positiva = avanti, negativa = indietro)
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void moveStraight(int distance, float speedPercent = 50.0f);
+    
+    /**
+     * @brief Esegue un movimento a zigzag
+     * @param distance Distanza totale in centimetri
+     * @param width Larghezza dello zigzag in centimetri
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void zigzag(int distance, int width, float speedPercent = 50.0f);
+    
+    /**
+     * @brief Esegue un movimento a spirale
+     * @param maxRadius Raggio massimo in metri
+     * @param speedPercent Velocità in percentuale (0-100%)
+     */
+    void spiral(float maxRadius = 5.0f, float speedPercent = 50.0f);
+    
     // Overload per compatibilità
     void startSpiral(float speed = 50.0f);  // Avvia una spirale con velocità predefinita
     
@@ -154,8 +213,21 @@ class Maneuver {
     void updateMovement();  // Da chiamare nel loop principale per aggiornare il movimento
     
     // Speed control
-    void setSpeed(float speed, bool isTrajectoryCorrection = false);
-    void setSpeed(float leftSpeed, float rightSpeed, bool isTrajectoryCorrection = true);
+    /**
+     * @brief Imposta la stessa velocità per entrambi i motori
+     * @param speedPercent Velocità in percentuale (-100% a 100%)
+     * @param isTrajectoryCorrection Se true, indica che è una correzione di traiettoria
+     */
+    void setSpeed(float speedPercent, bool isTrajectoryCorrection = false);
+    
+    /**
+     * @brief Imposta velocità separate per i due motori
+     * @param leftSpeedPercent Velocità motore sinistro (-100% a 100%)
+     * @param rightSpeedPercent Velocità motore destro (-100% a 100%)
+     * @param isTrajectoryCorrection Se true, indica che è una correzione di traiettoria
+     */
+    void setSpeed(float leftSpeedPercent, float rightSpeedPercent, bool isTrajectoryCorrection = true);
+    
     void setDirection(bool leftForward, bool rightForward);
     void updateAcceleration();
     

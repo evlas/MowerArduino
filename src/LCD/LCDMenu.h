@@ -5,6 +5,9 @@
 #include <LiquidCrystal_I2C.h>
 #include "../pin_config.h"
 
+// Forward declaration of LCDMenu class
+class LCDMenu;
+
 // Menu states
 enum MenuState {
     MAIN_MENU,
@@ -45,6 +48,18 @@ public:
     float getKp() const { return kp; }
     float getKi() const { return ki; }
     float getKd() const { return kd; }
+    
+    // LCD Operations
+    void clear() { lcd.clear(); }
+    void setCursor(uint8_t col, uint8_t row) { lcd.setCursor(col, row); }
+    void print(const String &text) { lcd.print(text); }
+    void print(int number) { lcd.print(number); }
+    void print(float number) { lcd.print(number); }
+    void print(char c) { lcd.print(c); }
+    void backlight() { lcd.backlight(); }
+    void noBacklight() { lcd.noBacklight(); }
+    void display() { lcd.display(); }
+    void noDisplay() { lcd.noDisplay(); }
 
 private:
     void updateDisplay();
@@ -75,7 +90,5 @@ private:
     static const int EEPROM_KI_ADDR = sizeof(float);
     static const int EEPROM_KD_ADDR = 2 * sizeof(float);
 };
-
-extern LCDMenu lcdMenu;
 
 #endif // LCD_MENU_H
