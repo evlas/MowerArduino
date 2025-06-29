@@ -70,7 +70,7 @@ void printCurrent() {
   float current = batterySensor.readCurrent();
   Serial.print("Current: ");
   Serial.print(current, 2);
-  Serial.println("A");
+  Serial.println("mA");
 }
 
 void printPower() {
@@ -94,8 +94,8 @@ void printAll() {
 }
 
 void estimateCharge(float voltage) {
-  float soc = (voltage - BATTERY_EMPTY_VOLTAGE) / 
-             (BATTERY_FULL_VOLTAGE - BATTERY_EMPTY_VOLTAGE) * 100.0;
+  float soc = (voltage - BATTERY_VOLTAGE_MIN) / 
+             (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN) * 100.0;
   soc = constrain(soc, 0, 100);
   
   Serial.print("State of Charge: ");

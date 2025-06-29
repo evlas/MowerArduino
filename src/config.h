@@ -177,12 +177,15 @@
 #define MAX_MOTOR_SPEED 799
 #define MIN_MOTOR_SPEED -799
 #define DEFAULT_MOTOR_SPEED 95.0f  // Velocità predefinita (95%)
+#define MOTOR_LEFT_REVERSE false
+#define MOTOR_RIGHT_REVERSE true
 
 #define ENABLE_BLADE_MOTORS
 #define BLADE_MOTORS_NUM      2        //Numero di motori per le lame di taglio
 #define BLADE_MOTOR_TIPO1    // Motori Brushless 5 fili
 //#define BLADE_MOTOR_TIPO2  // Motori Brushed 
 #define DEFAULT_BLADE_SPEED 95.0f  // Velocità predefinita della lama (95%)
+#define MOTOR_BLADE_REVERSE false
 
 // --- ATTUATORI ---
 #define ENABLE_BUZZER   // Buzzer per segnalazioni acustiche
@@ -245,7 +248,7 @@
 #define BATTERY_VOLTAGE_DIVIDER_RATIO BATTERY_VOLTAGE_DIVIDER  // Alias per compatibilità
 
 // Configurazione batteria LiPo
-#define BATTERY_CELLS          6
+#define BATTERY_CELLS          3
 #define BATTERY_CAPACITY       5.0f  // Ampere-ora
 
 // Parametri di tensione (per cella)
@@ -329,6 +332,26 @@
 
 // --- COMUNICAZIONE ---
 #define WIFI_TIMEOUT 10000  // Timeout connessione (ms)
+
+// --- DEBUGGING ---
+#ifdef ENABLE_DEBUG
+    #define DEBUG_PRINT(x) Serial.print(x)
+    #define DEBUG_PRINTLN(x) Serial.println(x)
+    #define DEBUG_PRINTF(...) Serial.printf(__VA_ARGS__)
+#else
+    #define DEBUG_PRINT(x)
+    #define DEBUG_PRINTLN(x)
+    #define DEBUG_PRINTF(...)
+#endif
+
+// --- BATTERY THRESHOLDS ---
+#define BATTERY_CRITICAL_THRESHOLD 20.0f  // Battery percentage considered critical
+#define BATTERY_LOW_THRESHOLD 30.0f       // Battery percentage considered low
+#define BATTERY_CHARGED_THRESHOLD 90.0f    // Battery percentage considered fully charged
+#define BATTERY_MAX_VOLTAGE 12.6f          // Maximum battery voltage (fully charged)
+#define BATTERY_MIN_VOLTAGE 10.5f          // Minimum battery voltage (empty)
+#define BATTERY_R1 10000.0f                // Voltage divider R1 (to GND)
+#define BATTERY_R2 4700.0f                 // Voltage divider R2 (to battery)
 
 // --- GPS CONFIGURATION ---
 // Definisce la porta seriale da utilizzare per il GPS

@@ -54,6 +54,7 @@ class Relay {
     int pin_;
 };
 
-extern Relay relay;
+extern Relay motorRelay;
+extern Relay chargingRelay;
 
 #endif // RELAY_H

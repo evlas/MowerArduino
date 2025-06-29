@@ -9,13 +9,13 @@ UltrasonicSensors::~UltrasonicSensors() {
 }
 
 void UltrasonicSensors::begin() {
-    // Initialize pins
-    pinMode(FRONT_ULTRASONIC_TRIG_PIN, OUTPUT);
-    pinMode(FRONT_ULTRASONIC_ECHO_PIN, INPUT);
-    pinMode(LEFT_ULTRASONIC_TRIG_PIN, OUTPUT);
-    pinMode(LEFT_ULTRASONIC_ECHO_PIN, INPUT);
-    pinMode(RIGHT_ULTRASONIC_TRIG_PIN, OUTPUT);
-    pinMode(RIGHT_ULTRASONIC_ECHO_PIN, INPUT);
+    // Initialize pins using the correct pin definitions from pin_config.h
+    pinMode(ULTRASONIC_FRONT_TRIG_PIN, OUTPUT);
+    pinMode(ULTRASONIC_FRONT_ECHO_PIN, INPUT);
+    pinMode(ULTRASONIC_LEFT_TRIG_PIN, OUTPUT);
+    pinMode(ULTRASONIC_LEFT_ECHO_PIN, INPUT);
+    pinMode(ULTRASONIC_RIGHT_TRIG_PIN, OUTPUT);
+    pinMode(ULTRASONIC_RIGHT_ECHO_PIN, INPUT);
 }
 
 float UltrasonicSensors::measureDistance(int trigPin, int echoPin) {
@@ -43,15 +43,15 @@ float UltrasonicSensors::measureDistance(int trigPin, int echoPin) {
 }
 
 float UltrasonicSensors::getFrontLeftDistance() {
-    return measureDistance(LEFT_ULTRASONIC_TRIG_PIN, LEFT_ULTRASONIC_ECHO_PIN);
+    return measureDistance(ULTRASONIC_LEFT_TRIG_PIN, ULTRASONIC_LEFT_ECHO_PIN);
 }
 
 float UltrasonicSensors::getFrontCenterDistance() {
-    return measureDistance(FRONT_ULTRASONIC_TRIG_PIN, FRONT_ULTRASONIC_ECHO_PIN);
+    return measureDistance(ULTRASONIC_FRONT_TRIG_PIN, ULTRASONIC_FRONT_ECHO_PIN);
 }
 
 float UltrasonicSensors::getFrontRightDistance() {
-    return measureDistance(RIGHT_ULTRASONIC_TRIG_PIN, RIGHT_ULTRASONIC_ECHO_PIN);
+    return measureDistance(ULTRASONIC_RIGHT_TRIG_PIN, ULTRASONIC_RIGHT_ECHO_PIN);
 }
 
 void UltrasonicSensors::getAllDistances(float& left, float& center, float& right) {

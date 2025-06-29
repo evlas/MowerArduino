@@ -5,6 +5,8 @@
 
 #include "Buzzer.h"
 
+Buzzer buzzer;
+
 // Melodie predefinite
 const int startupMelody[] = {
   NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5, 0

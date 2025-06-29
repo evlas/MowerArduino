@@ -148,4 +148,6 @@ public:
     }
 };
 
+extern GPSModule gps;
+
 #endif // GPS_MODULE_H

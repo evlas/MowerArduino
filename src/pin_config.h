@@ -3,14 +3,6 @@
 
 #include <Arduino.h>
 
-// Alias per compatibilità con il codice di test
-#define PIN_LEFT_MOTOR_PWM   MOTOR_LEFT_PWM_PIN
-#define PIN_LEFT_MOTOR_DIR   MOTOR_LEFT_DIR_PIN
-#define PIN_LEFT_ENCODER     MOTOR_LEFT_ENCODER_PIN
-#define PIN_RIGHT_MOTOR_PWM  MOTOR_RIGHT_PWM_PIN
-#define PIN_RIGHT_MOTOR_DIR  MOTOR_RIGHT_DIR_PIN
-#define PIN_RIGHT_ENCODER    MOTOR_RIGHT_ENCODER_PIN
-
 /*
  * pin_config.h - Definizione e descrizione dei PIN utilizzati dal robot tagliaerba
  * 
@@ -51,24 +43,48 @@
 // ========================
 // MOTORE LAMA
 // ========================
-#define BLADE_MOTOR1_PWM_PIN 8      // PWM primo motore lama principale
-#define BLADE_MOTOR2_PWM_PIN 11      // PWM secondo motore lama principale
-#define BLADE_MOTOR_PWM_PIN 10    // PWM motore lama principale
-#define BLADE_MOTOR_DIR_PIN 9      // Direzione motore lama principale
+#define MOTOR_BLADE_PWM_PIN 8      // PWM primo motore lama principale
+//#define MOTOR_BLADE_PWM_PIN 11      // PWM secondo motore lama principale
+//#define MOTOR_BLADE_PWM_PIN 10    // PWM motore lama principale
+#define MOTOR_BLADE_DIR_PIN 9      // Direzione motore lama principale
 // ========================
 // SENSORI
 // ========================
 // Ultrasuoni (abilitare con ENABLE_ULTRASONIC)
-#define FRONT_ULTRASONIC_ECHO_PIN 34    // Echo centrale
-#define FRONT_ULTRASONIC_TRIG_PIN 35    // Trigger centrale
-#define LEFT_ULTRASONIC_ECHO_PIN 36     // Echo sinistra
-#define LEFT_ULTRASONIC_TRIG_PIN 37     // Trigger sinistra
-#define RIGHT_ULTRASONIC_ECHO_PIN 38    // Echo destra
-#define RIGHT_ULTRASONIC_TRIG_PIN 39    // Trigger destra
+// Front
+#define ULTRASONIC_FRONT_ECHO_PIN 34    // Echo centrale
+#define ULTRASONIC_FRONT_TRIG_PIN 35    // Trigger centrale
+// Left
+#define ULTRASONIC_LEFT_ECHO_PIN 36     // Echo sinistra
+#define ULTRASONIC_LEFT_TRIG_PIN 37     // Trigger sinistra
+// Right
+#define ULTRASONIC_RIGHT_ECHO_PIN 38    // Echo destra
+#define ULTRASONIC_RIGHT_TRIG_PIN 39    // Trigger destra
+
+// Alias per compatibilità con il codice esistente
+#define ULTRASONIC_ECHO_PIN ULTRASONIC_FRONT_ECHO_PIN
+#define ULTRASONIC_TRIGGER_PIN ULTRASONIC_FRONT_TRIG_PIN
+#define ULTRASONIC_MAX_DISTANCE 400     // Massima distanza in cm
+
+// Enum per identificare i sensori a ultrasuoni
+typedef enum {
+    ULTRASONIC_FRONT = 0,
+    ULTRASONIC_LEFT,
+    ULTRASONIC_RIGHT,
+    ULTRASONIC_COUNT
+} UltrasonicSensor;
 
 // Sensori di urto (abilitare con ENABLE_BUMP_SENSORS)
 #define FRONT_RIGHT_BUMP_PIN 46      // Bump anteriore destro
 #define FRONT_LEFT_BUMP_PIN 47       // Bump anteriore sinistro
+#define REAR_RIGHT_BUMP_PIN 44       // Bump posteriore destro
+#define REAR_LEFT_BUMP_PIN 45        // Bump posteriore sinistro
+
+// Alias per compatibilità con il codice esistente
+#define BUMP_FRONT_PIN FRONT_LEFT_BUMP_PIN
+#define BUMP_REAR_PIN REAR_LEFT_BUMP_PIN
+#define BUMP_LEFT_PIN FRONT_LEFT_BUMP_PIN
+#define BUMP_RIGHT_PIN FRONT_RIGHT_BUMP_PIN
 
 // Sensore filo perimetrale (abilitare con ENABLE_PERIMETER_WIRE)
 #define RIGHT_PERIMETER_PIN A4     // Filo perimetrale destro
@@ -79,6 +95,11 @@
 
 
 #define EMERG_STOP_BUTTON_PIN 10  // Pulsante Stop
+
+// IMU (MPU6050/MPU9250)
+#define IMU_SDA_PIN 20              // SDA per IMU (condiviso con I2C)
+#define IMU_SCL_PIN 21              // SCL per IMU (condiviso con I2C)
+#define IMU_INTERRUPT_PIN 30        // Interrupt pin per IMU (cambia se necessario)
 
 // RTC (abilitare con ENABLE_RTC)
 #define RTC_SCLK_PIN 31              // Clock RTC
@@ -101,7 +122,7 @@
 // ========================
 #define BUZZER_PIN 48                // Buzzer per segnalazioni acustiche
 #define RELAY_MOTORS_PIN 24          // Relay motori
-#define CHARGING_RELAY_PIN 25        // Relay di ricarica
+#define RELAY_CHARGING_PIN 25        // Relay di ricarica
 
 // ========================
 // PULSANTI DI CONTROLLO

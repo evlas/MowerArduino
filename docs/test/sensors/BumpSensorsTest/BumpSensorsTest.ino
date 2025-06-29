@@ -33,6 +33,7 @@ void loop() {
     } else {
       Serial.println("No BUMP");
     };  // Returns: 0=left, 1=right, 2=center, -1=no bump
+    Serial.println("Suca");
     delay(100);
   }
 }

@@ -14,7 +14,7 @@ bool BatterySensor::begin() {
     }
 
     // Configurazione INA226
-    ina226.setResistorRange(0.002, 10.0);  // 2mΩ shunt, 10A massimi
+    ina226.setResistorRange(0.10, 10.0);  // 2mΩ shunt, 10A massimi
     ina226.setMeasureMode(CONTINUOUS);      // Modalità continua
     ina226.setAverage(AVERAGE_16);          // Media su 16 campioni
     ina226.setConversionTime(CONV_TIME_1100);  // Tempo di conversione 1.1ms
@@ -32,7 +32,7 @@ float BatterySensor::readVoltage() {
 }
 
 float BatterySensor::readCurrent() {
-    return connected ? ina226.getCurrent_mA() : 0.0f;
+    return connected ? ina226.getCurrent_mA()/1000.0 : 0.0f;
 }
 
 float BatterySensor::readPower() {

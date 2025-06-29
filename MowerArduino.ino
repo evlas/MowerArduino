@@ -1,45 +1,36 @@
 /**
  * @file MowerArduino.ino
  * @brief Main file for the Arduino Mower project
- * @version 1.0
+ * @version 2.0
  * @date 2025
  * 
  * @copyright Copyright (c) 2025
  * 
  * This is the main entry point for the Arduino-based robotic lawn mower system.
- * The project is organized in a modular structure with the following components:
+ * The project uses a state pattern for managing different operating modes.
+ * 
+ * Project Structure:
  * - config.h: Global configuration settings
  * - pin_config.h: Pin configuration for all hardware components
- * - setup.ino: System initialization code
- * - loop.ino: Main program loop
  * - src/functions: Core functionality modules
+ * - src/states: State implementations for the state machine
  * - src/sensors: Sensor interfaces and drivers
- * - src/motors: Motor control and drivers
- * - src/actuators: Actuator control (buzzers, relays, etc.)
+ * - src/actuators: Motor and actuator control
  * - src/communications: Communication protocols and interfaces
- * - src/LCD: Display and user interface
  */
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // Include configuration
 #include "src/config.h"
 #include "src/pin_config.h"
 
-// Include delle classi di sistema
+// Include system classes
 #include "src/functions/Mower.h"
 
-#include <LiquidCrystal_I2C.h>
-#include <DS1302.h>
-
-// Inizializza il RTC
-DS1302 rtc(RTC_IO_PIN, RTC_SCLK_PIN, RTC_RST_PIN);
-
-// Inizializza il display
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
-
-// Initialize Mower with motor pins
+// Create global Mower instance
 Mower mower;
 
 /**
@@ -49,15 +40,35 @@ Mower mower;
  * This function is called once when the Arduino starts up.
  */
 void setup() {
-  mower.begin();
+    // Initialize serial communication for debugging
+    #ifdef ENABLE_DEBUG
+    SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
+    while (!SERIAL_DEBUG) {
+        ; // Wait for serial port to connect (for native USB)
+    }
+    SERIAL_DEBUG.println(F("\n=== Mower System Starting ==="));
+    #endif
+    
+    // Initialize the mower system
+    mower.init();
+    
+    #ifdef ENABLE_DEBUG
+    SERIAL_DEBUG.println(F("System initialized"));
+    SERIAL_DEBUG.print(F("Initial state: "));
+    SERIAL_DEBUG.println(mower.stateToString(mower.getState()));
+    #endif
 }
 
 /**
  * @brief Arduino main loop - called repeatedly
  * 
  * This is the main program loop that runs continuously after setup().
- * It handles all the main functionality of the robotic mower.
+ * It updates the mower's state and handles all operations.
  */
 void loop() {
-  mower.update();
+    // Update the mower (this will handle state updates, sensors, etc.)
+    mower.update();
+    
+    // Add a small delay to prevent watchdog resets
+    delay(10);
 }
