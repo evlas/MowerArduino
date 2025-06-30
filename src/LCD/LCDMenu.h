@@ -13,6 +13,7 @@ class Mower;  // Forward declaration di Mower
 
 // Menu states
 enum MenuState {
+    STATUS_DISPLAY,  // Visualizza stato e batteria
     MAIN_MENU,
     MOWING_MENU,
     MAINTENANCE_MENU,
@@ -81,6 +82,7 @@ public:
 
 private:
     void updateDisplay();
+    void updateStatusDisplay();
     void handleMainMenu(uint8_t button);
     void handleMowingMenu(uint8_t button);
     void handleMaintenanceMenu(uint8_t button);
@@ -106,6 +108,7 @@ private:
     
     // Button state tracking
     unsigned long lastButtonPress;
+    unsigned long lastButtonCheck;
     
     // EEPROM addresses for PID values
     static const int EEPROM_KP_ADDR = 0;

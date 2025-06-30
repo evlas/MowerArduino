@@ -16,6 +16,7 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
+#include "../LCD/LCDMenu.h"
 
 // Forward declaration per risolvere la dipendenza circolare
 class LCDMenu;
@@ -72,6 +73,24 @@ class RosControlState;
  * - Managing navigation and mowing patterns
  */
 class Mower {
+    // Dichiarazioni friend per le classi stato
+    friend class IdleState;
+    friend class MowingState;
+    friend class DockingState;
+    friend class UndockingState;
+    friend class ChargingState;
+    friend class EmergencyStopState;
+    friend class ManualControlState;
+    friend class ErrorState;
+    friend class BorderDetectedState;
+    friend class LiftedState;
+    friend class PausedState;
+    friend class SleepState;
+    friend class RainDelayState;
+    friend class MaintenanceNeededState;
+    friend class RosControlState;
+    friend class RemoteCommand;
+    
 public:
     /**
      * @brief State type alias from MowerTypes.h
@@ -84,6 +103,17 @@ public:
     using Event = ::Event;
     
     // Metodi per ottenere gli stati (implementati in StateGetters.h)
+    
+    /**
+     * @brief Sets the LCD menu reference and links it with this Mower instance
+     * @param menu Reference to the LCDMenu instance
+     */
+    void setLCDMenu(LCDMenu& menu) {
+        lcdMenu = &menu;
+        if (lcdMenu) {
+            lcdMenu->setMower(this);  // Imposta il puntatore a this nel menu
+        }
+    }
     
     /**
      * @name Initialization
@@ -279,9 +309,9 @@ public:
     
     /**
      * @brief Construct a new Mower object
-     * @param lcdMenu Reference to the LCDMenu instance
+     * @param lcdMenu Optional pointer to LCDMenu instance (default: nullptr)
      */
-    explicit Mower(LCDMenu& lcdMenu);
+    explicit Mower(LCDMenu* lcdMenu = nullptr);
     
     /**
      * @brief Initialize the mower system
@@ -336,10 +366,11 @@ public:
     
     /**
      * @name User Interface
-     * @{
+     * 
+     */
  private:
     // Reference to the LCDMenu instance
-    LCDMenu& lcdMenu;
+    LCDMenu* lcdMenu = nullptr;  // Inizializzato a nullptr
     
     /**
      * @brief Clear the LCD display
@@ -670,9 +701,6 @@ public:
     friend class RemoteCommand;
 
 private:
-    // Reference to the LCD menu
-    LCDMenu& lcdMenu;              ///< Reference to the LCD menu instance
-
     // Current and next state pointers for state machine
     MowerState* currentState_;      ///< Current state of the mower state machine
     MowerState* nextState_;         ///< Next state to transition to

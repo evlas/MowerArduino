@@ -6,7 +6,7 @@
 
 LCDMenu::LCDMenu() 
     : lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE),
-      currentState(MAIN_MENU),
+      currentState(STATUS_DISPLAY),
       currentItem(0),
       currentPidParam(PID_KP),
       lastDisplayUpdate(0),  // Inizializza a 0 per forzare il primo aggiornamento
@@ -14,13 +14,15 @@ LCDMenu::LCDMenu()
       maintenanceMode(false),
       kp(1.0), ki(0.1), kd(0.05),
       lastButtonPress(0),
+      lastButtonCheck(0),
       lastUserActivity(millis()),
-      backlightOn(true) {
+      backlightOn(true),
+      mowerPtr(nullptr) {  // Inizializza esplicitamente a nullptr
 }
 
 void LCDMenu::begin() {
     // Inizializza LCD
-    DEBUG_PRINTLN("Inizializzazione LCD...");
+    DEBUG_PRINTLN("\n=== Inizializzazione LCD ===");
     
     lcd.begin(16, 2);    
     delay(50);
@@ -50,60 +52,94 @@ void LCDMenu::begin() {
     lcd.setCursor(0, 0);
     lcd.print("Mower Control");
     lcd.setCursor(0, 1);
-    lcd.print("Ready");
+    lcd.print("Avvio...");
 
     delay(1000); // Show initialization message
-    updateDisplay();
+    updateStatusDisplay(); // Mostra subito lo stato invece del menu
 }
 
 void LCDMenu::update() {
-    static unsigned long lastUpdateTime = 0;
     unsigned long currentTime = millis();
     
-    // Aggiorna solo se è passato abbastanza tempo dall'ultimo aggiornamento
-    if (currentTime - lastUpdateTime < 50) {  // Limita a 20 aggiornamenti al secondo
-        return;
-    }
-    lastUpdateTime = currentTime;
-
-    // Gestione della retroilluminazione
+    // Gestione retroilluminazione
     updateBacklight();
     
-    // Ignora i nuovi input durante il periodo di debounce
-    if (currentTime - lastButtonPress < BUTTON_DEBOUNCE) {
-        return;
+    // Controlla i pulsanti ogni 50ms
+    if (currentTime - lastButtonCheck >= 50) {
+        lastButtonCheck = currentTime;
+        
+        // Ignora i nuovi input durante il periodo di debounce
+        if (currentTime - lastButtonPress < BUTTON_DEBOUNCE) {
+            return;
+        }
+        
+        bool buttonPressed = false;
+        
+        // Se siamo in STATUS_DISPLAY, qualsiasi pulsante porta al menu principale
+        if (currentState == STATUS_DISPLAY) {
+            if (digitalRead(START_BUTTON_PIN) == LOW || 
+                digitalRead(PLUS_BUTTON_PIN) == LOW || 
+                digitalRead(MINUS_BUTTON_PIN) == LOW || 
+                digitalRead(STOP_BUTTON_PIN) == LOW) {
+                
+                DEBUG_PRINTLN("Button pressed in STATUS_DISPLAY, switching to MAIN_MENU");
+                currentState = MAIN_MENU;
+                currentItem = 0;
+                lastButtonPress = currentTime;
+                updateDisplay();
+                return;
+            }
+        }
+        // Se siamo in un menu, gestisci i pulsanti normalmente
+        else {
+            if (digitalRead(START_BUTTON_PIN) == LOW) {
+                DEBUG_PRINTLN("START button pressed");
+                lastButtonPress = currentTime;
+                handleButtonPress(START_BUTTON_PIN);
+                buttonPressed = true;
+            } 
+            else if (digitalRead(PLUS_BUTTON_PIN) == LOW) {
+                DEBUG_PRINTLN("PLUS button pressed");
+                lastButtonPress = currentTime;
+                handleButtonPress(PLUS_BUTTON_PIN);
+                buttonPressed = true;
+            } 
+            else if (digitalRead(MINUS_BUTTON_PIN) == LOW) {
+                DEBUG_PRINTLN("MINUS button pressed");
+                lastButtonPress = currentTime;  
+                handleButtonPress(MINUS_BUTTON_PIN);
+                buttonPressed = true;
+            } 
+            else if (digitalRead(STOP_BUTTON_PIN) == LOW) {
+                DEBUG_PRINTLN("STOP button pressed");
+                lastButtonPress = currentTime;
+                // Se siamo nel menu principale, il tasto STOP torna allo stato
+                if (currentState == MAIN_MENU) {
+                    currentState = STATUS_DISPLAY;
+                    DEBUG_PRINTLN("Returning to STATUS_DISPLAY from MAIN_MENU");
+                } else {
+                    handleButtonPress(STOP_BUTTON_PIN);
+                }
+                buttonPressed = true;
+            }
+            
+            // Aggiorna il display se un pulsante è stato premuto
+            if (buttonPressed) {
+                updateDisplay();
+                lastDisplayUpdate = currentTime;
+            }
+        }
     }
     
-    bool buttonPressed = false;
-    
-    if (digitalRead(START_BUTTON_PIN) == LOW) {
-        DEBUG_PRINTLN("START button pressed");
-        lastButtonPress = currentTime;
-        handleButtonPress(START_BUTTON_PIN);
-        buttonPressed = true;
-    } 
-    else if (digitalRead(PLUS_BUTTON_PIN) == LOW) {
-        DEBUG_PRINTLN("PLUS button pressed");
-        lastButtonPress = currentTime;
-        handleButtonPress(PLUS_BUTTON_PIN);
-        buttonPressed = true;
-    } 
-    else if (digitalRead(MINUS_BUTTON_PIN) == LOW) {
-        DEBUG_PRINTLN("MINUS button pressed");
-        lastButtonPress = currentTime;  
-        handleButtonPress(MINUS_BUTTON_PIN);
-        buttonPressed = true;
-    } 
-    else if (digitalRead(STOP_BUTTON_PIN) == LOW) {
-        DEBUG_PRINTLN("STOP button pressed");        lastButtonPress = currentTime;
-        handleButtonPress(STOP_BUTTON_PIN);
-        buttonPressed = true;
-    }
-    
-    // Aggiorna il display solo se necessario (pulsante premuto o refresh periodico con retroilluminazione accesa)
-    if (buttonPressed || (backlightOn && (currentTime - lastUpdateTime >= DISPLAY_REFRESH_INTERVAL))) {
-        updateDisplay();
-        lastUpdateTime = currentTime;
+    // Aggiornamento periodico del display (ogni 500ms)
+    if (backlightOn && (currentTime - lastDisplayUpdate >= 500)) {
+        // Se siamo in STATUS_DISPLAY, aggiorna sempre lo stato
+        if (currentState == STATUS_DISPLAY) {
+            updateStatusDisplay();
+        } else {
+            updateDisplay();
+        }
+        lastDisplayUpdate = currentTime;
     }
 }
 
@@ -168,10 +204,6 @@ void LCDMenu::updateDisplay() {
     if (currentTime - lastDisplayUpdate < DISPLAY_REFRESH_INTERVAL) {
         return;
     }
-    lastDisplayUpdate = currentTime;
-    
-    DEBUG_PRINT("Updating display, state: ");
-    DEBUG_PRINTLN(getStateName(currentState));
     
     lcd.clear();
     
@@ -307,5 +339,55 @@ void LCDMenu::loadPidFromEeprom() {
         EEPROM.get(EEPROM_KP_ADDR, kp);
         EEPROM.get(EEPROM_KI_ADDR, ki);
         EEPROM.get(EEPROM_KD_ADDR, kd);
+    }
+}
+
+void LCDMenu::updateStatusDisplay() {
+    lcd.clear();
+    
+    // Prima riga: stato del robot
+    lcd.setCursor(0, 0);
+    lcd.print("Stato: ");
+    
+    if (mowerPtr) {
+        // Ottieni lo stato attuale dal mower
+        State currentState = mowerPtr->getState();
+        
+        // Verifica se il puntatore al mower è valido
+        if (mowerPtr == nullptr) {
+            DEBUG_PRINTLN("ERRORE: mowerPtr è nullo!");
+            return;
+        }
+        
+        // Converti lo stato in stringa
+        const char* stateStr = "SCONOSCIUTO";
+        switch (currentState) {
+            case State::IDLE: stateStr = "IN ATTESA"; break;
+            case State::MOWING: stateStr = "TAGLIO"; break;
+            case State::DOCKING: stateStr = "AGGANCIO"; break;
+            case State::UNDOCKING: stateStr = "USCITA BASE"; break;
+            case State::CHARGING: stateStr = "RICARICA"; break;
+            case State::MANUAL_CONTROL: stateStr = "MANUALE"; break;
+            case State::EMERGENCY_STOP: stateStr = "EMERGENZA"; break;
+            case State::BORDER_DETECTED: stateStr = "BORDO"; break;
+            case State::LIFTED: stateStr = "SOLLEVATO"; break;
+            case State::TESTING: stateStr = "TEST"; break;
+            case State::PAUSED: stateStr = "PAUSA"; break;
+            case State::SLEEP: stateStr = "SOSPESO"; break;
+            case State::RAIN_DELAY: stateStr = "PIOGGIA"; break;
+            case State::MAINTENANCE_NEEDED: stateStr = "MANUTENZIONE"; break;
+            case State::ROS_CONTROL: stateStr = "CONTROLLO ROS"; break;
+            default: stateStr = "ALTRO";
+        }
+        
+        lcd.print(stateStr);
+        
+        // Seconda riga: livello batteria
+        lcd.setCursor(0, 1);
+        lcd.print("Batteria: ");
+        lcd.print(static_cast<int>(mowerPtr->getBatteryPercentage()));
+        lcd.print("%");
+    } else {
+        lcd.print("Nessun collegamento");
     }
 }

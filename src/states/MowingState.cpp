@@ -8,9 +8,12 @@
 #include <Arduino.h>
 
 void MowingState::enter(Mower& mower) {
-#ifdef DEBUG_MODE
     DEBUG_PRINTLN(F("MOWING: Entering state"));
-#endif
+    DEBUG_PRINT(F("MOWING: Current battery level: "));
+    DEBUG_PRINTLN(mower.getBatteryPercentage());
+    
+    // Verifica che i puntatori ai motori siano validi
+    DEBUG_PRINTLN(F("MOWING: Starting motors..."));
     
     // Aggiorna il display
     mower.clearLcdDisplay();
@@ -27,6 +30,8 @@ void MowingState::enter(Mower& mower) {
     mower.playBuzzerTone(2000, 100);
     delay(100);
     mower.playBuzzerTone(2500, 100);
+    
+    DEBUG_PRINTLN(F("MOWING: Initialization completed"));
     
     // Resetta il timer dell'inattività
     lastActivityTime_ = millis();

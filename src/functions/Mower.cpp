@@ -14,8 +14,8 @@
 #include "../states/ErrorState.h"
 
 // ---------------------------------------------------------------------------
-// Costruttore
-Mower::Mower(LCDMenu& lcdMenu) : 
+// Costruttore unificato con parametro opzionale
+Mower::Mower(LCDMenu* lcdMenu) : 
     currentState_(nullptr),
     emergencyStopActive_(false), 
     bladesRunning_(false), 
@@ -38,30 +38,41 @@ Mower::Mower(LCDMenu& lcdMenu) :
     leftMotor(MOTOR_LEFT_PWM_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_REVERSE),
     rightMotor(MOTOR_RIGHT_PWM_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_REVERSE),
     bladeMotor(MOTOR_BLADE_PWM_PIN, MOTOR_BLADE_DIR_PIN, MOTOR_BLADE_REVERSE),
-    // Inizializza il riferimento a LCDMenu
-    lcdMenu(lcdMenu),
-    // Inizializza i sensori con i costruttori predefiniti
-    // I pin verranno impostati nel metodo initializeComponents()
-    batterySensor(),
-    bumpSensors(),
-    ultrasonicSensors(),
-    imu(),
-    rainSensor()
+    // Inizializza il puntatore a LCDMenu
+    lcdMenu(lcdMenu)
 {
+    DEBUG_PRINTLN("Costruttore Mower chiamato");
+    DEBUG_PRINT("LCD Menu: ");
+    DEBUG_PRINTLN(lcdMenu ? "presente" : "assente");
+    
     // Inizializza i relè
     motorRelay.begin(RELAY_MOTORS_PIN);
     chargingRelay.begin(RELAY_CHARGING_PIN);
 }
 
 void Mower::begin() {
+    static bool initialized = false;
+    if (initialized) {
+        DEBUG_PRINTLN("Mower::begin() già chiamato, ignoro la chiamata successiva");
+        return;
+    }
+    
+    DEBUG_PRINTLN("Mower::begin() - Inizializzazione in corso...");
+    
     // Initialize serial communication for debug if enabled
     DEBUG_PRINTLN("Debug serial initialized");
     
     // Il display LCD è gestito dalla classe LCDMenu
-    lcdMenu.begin();
+    if (lcdMenu) {
+        lcdMenu->begin();
+    }
 
     // Inizializza il sensore di batteria
-    batterySensor.begin();
+    if (batterySensor.begin()) {
+        DEBUG_PRINTLN("BatterySensor: INA226 init successful");
+    } else {
+        DEBUG_PRINTLN("BatterySensor: INA226 init failed!");
+    }
     
     // Inizializza i sensori di urto
     bumpSensors.begin();
@@ -93,15 +104,19 @@ void Mower::begin() {
 
     delay(5000);
 
-    lcdMenu.clear();
-    lcdMenu.setCursor(0, 0);
-    lcdMenu.print("Mower");
-    lcdMenu.setCursor(0, 1);
-    lcdMenu.print("Started!");
+    if (lcdMenu) {
+        lcdMenu->clear();
+        lcdMenu->setCursor(0, 0);
+        lcdMenu->print("Mower");
+        lcdMenu->setCursor(0, 1);
+        lcdMenu->print("Started!");
+    }
 
     // Play startup sound
     buzzer.startupSound();
     
+    initialized = true;
+    DEBUG_PRINTLN("Mower::begin() - Inizializzazione completata");
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +148,9 @@ void Mower::update() {
     }
     
     // Aggiorna il menu LCD e gestisci le pressioni dei pulsanti
-    lcdMenu.update();
+    if (lcdMenu) {
+        lcdMenu->update();
+    }
     
     // Aggiorna lo stato corrente
     if (currentState_ != nullptr) {
@@ -326,7 +343,9 @@ void Mower::updateSensors() {
     // Aggiorna il sensore di batteria
     batterySensor.update();
     
-    lcdMenu.update();
+    if (lcdMenu) {
+        lcdMenu->update();
+    }
 
     // Aggiorna lo stato della batteria
     batteryLevel_ = batterySensor.getBatteryPercentage();
@@ -432,26 +451,50 @@ void Mower::updateSensors() {
 
 // Gestione stato
 void Mower::changeState(MowerState& newState) {
+    DEBUG_PRINT("MOWER: changeState - Richiesto cambio a stato: ");
+    DEBUG_PRINTLN(stateToString(newState.getStateType()));
+    
     // Se lo stato richiesto è lo stesso di quello corrente, non fare nulla
     if (currentState_ != nullptr && currentState_->getStateType() == newState.getStateType()) {
+        DEBUG_PRINTLN("MOWER: Lo stato richiesto è già quello attuale, nessuna azione");
         return;
     }
     
     // Esci dallo stato corrente
     if (currentState_ != nullptr) {
+        DEBUG_PRINT("MOWER: Uscita dallo stato corrente: ");
+        DEBUG_PRINTLN(stateToString(currentState_->getStateType()));
         currentState_->exit(*this);
+        DEBUG_PRINTLN("MOWER: Uscita dallo stato corrente completata");
+    } else {
+        DEBUG_PRINTLN("MOWER: Nessuno stato corrente attivo");
     }
     
     // Imposta il nuovo stato
     currentState_ = &newState;
+    DEBUG_PRINT("MOWER: Nuovo stato impostato: ");
+    DEBUG_PRINTLN(stateToString(currentState_->getStateType()));
     
     // Entra nel nuovo stato
+    DEBUG_PRINTLN("MOWER: Ingresso nel nuovo stato...");
     currentState_->enter(*this);
+    DEBUG_PRINTLN("MOWER: Ingresso nel nuovo stato completato");
 }
 
 void Mower::handleEvent(Event event) {
+    DEBUG_PRINT("MOWER: handleEvent - Ricevuto evento: ");
+    DEBUG_PRINTLN(eventToString(event));
+    
     if (currentState_ != nullptr) {
+        DEBUG_PRINT("MOWER: Inoltro evento allo stato corrente: ");
+        DEBUG_PRINTLN(stateToString(currentState_->getStateType()));
+        
         currentState_->handleEvent(*this, event);
+        
+        DEBUG_PRINT("MOWER: Gestione evento completata per stato: ");
+        DEBUG_PRINTLN(stateToString(currentState_->getStateType()));
+    } else {
+        DEBUG_PRINTLN("MOWER: ERRORE - Nessuno stato corrente attivo per gestire l'evento");
     }
 }
 
@@ -935,32 +978,42 @@ bool Mower::enableCharging(bool enable) {
 // ===== LCD Display Methods =====
 void Mower::clearLcdDisplay() {
     // Forward to LCDMenu instance
-    lcdMenu.clear();
+    if (lcdMenu) {
+        lcdMenu->clear();
+    }
 }
 
 void Mower::setLcdCursor(uint8_t col, uint8_t row) {
     // Forward to LCDMenu instance
-    lcdMenu.setCursor(col, row);
+    if (lcdMenu) {
+        lcdMenu->setCursor(col, row);
+    }
 }
 
 void Mower::printToLcd(const String &text) {
     // Forward to LCDMenu instance
-    lcdMenu.print(text);
+    if (lcdMenu) {
+        lcdMenu->print(text);
+    }
 }
 
 void Mower::printToLcd(int number) {
     // Forward to LCDMenu instance
-    lcdMenu.print(number);
+    if (lcdMenu) {
+        lcdMenu->print(number);
+    }
 }
 
 void Mower::updateLcdDisplay(const String &line1, const String &line2) {
     // Update both lines of the LCD display
-    lcdMenu.clear();
-    lcdMenu.setCursor(0, 0);
-    lcdMenu.print(line1);
-    
-    if (line2.length() > 0) {
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.print(line2);
+    if (lcdMenu) {
+        lcdMenu->clear();
+        lcdMenu->setCursor(0, 0);
+        lcdMenu->print(line1);
+        
+        if (line2.length() > 0) {
+            lcdMenu->setCursor(0, 1);
+            lcdMenu->print(line2);
+        }
     }
 }

@@ -36,8 +36,8 @@
 // Create global LCDMenu instance
 LCDMenu lcdMenu;
 
-// Create global Mower instance with LCDMenu reference
-Mower mower(lcdMenu);
+// Create global Mower instance and link it with LCDMenu
+Mower mower(&lcdMenu);  // Passa il puntatore all'istanza LCDMenu
 
 // Create remote command instance
 //RemoteCommand remoteCmd(mower);
@@ -45,54 +45,53 @@ Mower mower(lcdMenu);
 // Create WiFi remote instance
 //WiFiRemote wifiRemote(remoteCmd);
 
-/**
- * @brief Arduino setup function - called once at startup
- * 
- * Initializes all system components and sets up the initial state.
- * This function is called once when the Arduino starts up.
- */
 void setup() {
-//    Wire.setClock(100000);
-//    Wire.setWireTimeout(300 /* us */, true /* reset_on_timeout */);
-    Wire.begin();
-
+    // Inizializzazione seriale di debug
     #ifdef DEBUG_MODE
-    // Inizializza la seriale debug solo se il debug è abilitato
+    // Chiudi la seriale se già aperta
+    #if defined(__AVR__) || defined(ESP8266) || defined(ESP32)
+        SERIAL_DEBUG.end();
+        delay(50);
+    #endif
+    
+    // Inizializza la seriale di debug
     SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
-    // Attendi che la seriale sia pronta (solo per alcune schede)
-    // Piccola pausa per stabilizzare la connessione
-    delay(100);
-    // Invia caratteri di test per sincronizzazione
-    SERIAL_DEBUG.println();
+    
+    // Attendi che la porta sia pronta (solo su alcune schede)
+    #ifndef ARDUINO_ARCH_AVR
+    unsigned long startTime = millis();
+    while (!SERIAL_DEBUG && (millis() - startTime < 3000)) {
+        ; // Attendi la connessione della porta seriale (max 3 secondi)
+    }
+    #else
+    // Su AVR, aspetta un po' per la stabilizzazione
+    delay(2000);
+    #endif
+    
+    // Invia un messaggio di benvenuto
+    SERIAL_DEBUG.println("\n\n=== Mower System Starting ===");
+    SERIAL_DEBUG.print("Firmware: ");
+    SERIAL_DEBUG.println(FIRMWARE_VERSION);
+    SERIAL_DEBUG.print("Build: ");
+    SERIAL_DEBUG.println(__DATE__ " " __TIME__);
+    SERIAL_DEBUG.print("Debug mode: ENABLED\n");
+    SERIAL_DEBUG.println("======================\n");
     #endif
 
-    DEBUG_PRINTLN(F("=== Mower System Starting ==="));
-
-    // Initialize the mower system
+    DEBUG_PRINTLN("Inizializzazione sistema...");
+    
+    // Inizializza I2C
+    Wire.begin();
+    
+    // Inizializza prima il menu LCD
+    lcdMenu.setMower(&mower);
+    lcdMenu.begin();
+    
+    // Poi inizializza il sistema mower
     mower.begin();
-/*    
-    // Inizializza il controllo remoto
-    remoteCmd.begin();
     
-    // Imposta i gestori degli eventi
-    remoteCmd.setStatusUpdateHandler([](const struct RemoteStatus& status) {
-        // Qui puoi gestire gli aggiornamenti di stato
-        // Ad esempio, inviare notifiche o aggiornare display
-        #ifdef ENABLE_DEBUG
-        SERIAL_DEBUG.print("Status update - Battery: ");
-        SERIAL_DEBUG.print(status.batteryLevel);
-        SERIAL_DEBUG.print("% ");
-        SERIAL_DEBUG.print("Moving: ");
-        SERIAL_DEBUG.println(status.isMoving ? "Yes" : "No");
-        #endif
-    });
-    
-    // Inizializza la comunicazione WiFi
-    wifiRemote.begin(SERIAL_WIFI_BAUD);
-*/
-    
-    DEBUG_PRINTLN(F("System initialized"));
-    DEBUG_PRINT(F("Initial state: "));
+    DEBUG_PRINTLN("Sistema inizializzato");
+    DEBUG_PRINT("Stato iniziale: ");
     DEBUG_PRINTLN(mower.stateToString(mower.getState()));
 }
 

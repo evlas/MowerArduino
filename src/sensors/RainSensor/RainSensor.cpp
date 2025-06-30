@@ -15,5 +15,6 @@ void RainSensor::begin() {
 }
 
 bool RainSensor::isRaining() {
-    return analogRead(RAIN_SENSOR_PIN) < RAIN_THRESHOLD;
+//    return analogRead(RAIN_SENSOR_PIN) < RAIN_THRESHOLD;
+    return false;
 }

@@ -26,9 +26,15 @@ void IdleState::exit(Mower& mower) {
 
 void IdleState::handleEvent(Mower& mower, Event event) {
     switch (event) {
-        case Event::START_MOWING:
-            mower.setState(mower.getMowingState());
+        case Event::START_MOWING: {
+            DEBUG_PRINTLN(F("IDLE: Received START_MOWING event"));
+            MowerState& nextState = mower.getMowingState();
+            DEBUG_PRINT(F("IDLE: Transitioning to MowingState at address: "));
+            DEBUG_PRINTLN((uintptr_t)&nextState, HEX);
+            mower.setState(nextState);
+            DEBUG_PRINTLN(F("IDLE: State transition completed"));
             break;
+        }
             
         case Event::EMERGENCY_STOP:
             mower.setState(mower.getEmergencyStopState());
