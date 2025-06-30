@@ -9,7 +9,7 @@
 
 void MowingState::enter(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("MOWING: Entering state"));
+    DEBUG_PRINTLN(F("MOWING: Entering state"));
 #endif
     
     // Aggiorna il display
@@ -119,7 +119,7 @@ void MowingState::updateDisplay(Mower& mower) {
 
 void MowingState::exit(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("MOWING: Exiting state"));
+    DEBUG_PRINTLN(F("MOWING: Exiting state"));
 #endif
     
     // Ferma i motori e le lame
@@ -159,8 +159,8 @@ void MowingState::handleBorderAvoidance(Mower& mower) {
 
 void MowingState::handleEvent(Mower& mower, Event event) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("MOWING: Handling event "));
-    SERIAL_DEBUG.println(mower.eventToString(event));
+    DEBUG_PRINT(F("MOWING: Handling event "));
+    DEBUG_PRINTLN(mower.eventToString(event));
 #endif
 
     switch (event) {
@@ -251,8 +251,8 @@ void MowingState::handleEvent(Mower& mower, Event event) {
         // Ignora altri eventi durante il taglio
         default:
 #ifdef DEBUG_MODE
-            SERIAL_DEBUG.print(F("MOWING: Ignoring event "));
-            SERIAL_DEBUG.println(mower.eventToString(event));
+            DEBUG_PRINT(F("MOWING: Ignoring event "));
+            DEBUG_PRINTLN(mower.eventToString(event));
 #endif
             break;
     }

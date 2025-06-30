@@ -12,7 +12,7 @@ const unsigned long MAX_UNDOCKING_TIME = 10000;  // 10 secondi massimi per l'und
 
 void UndockingState::enter(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("UNDOCKING: Entering state"));
+    DEBUG_PRINTLN(F("UNDOCKING: Entering state"));
 #endif
     
     // Inizializza le variabili di stato
@@ -43,7 +43,7 @@ void UndockingState::update(Mower& mower) {
     // Verifica il timeout di sicurezza
     if (elapsedTime > MAX_UNDOCKING_TIME) {
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("UNDOCKING: Timeout during undocking"));
+        DEBUG_PRINTLN(F("UNDOCKING: Timeout during undocking"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
         return;
@@ -75,7 +75,7 @@ void UndockingState::update(Mower& mower) {
         undockingStartTime_ = currentTime;
         
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("UNDOCKING: Starting rotation"));
+        DEBUG_PRINTLN(F("UNDOCKING: Starting rotation"));
 #endif
     }
     // Fase 2: Rotazione completata, passa allo stato di taglio
@@ -109,7 +109,7 @@ void UndockingState::update(Mower& mower) {
 
 void UndockingState::exit(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("UNDOCKING: Exiting state"));
+    DEBUG_PRINTLN(F("UNDOCKING: Exiting state"));
 #endif
     
     // Ferma i motori
@@ -140,8 +140,8 @@ void UndockingState::exit(Mower& mower) {
 
 void UndockingState::handleEvent(Mower& mower, Event event) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("UNDOCKING: Handling event "));
-    SERIAL_DEBUG.println(mower.eventToString(event));
+    DEBUG_PRINT(F("UNDOCKING: Handling event "));
+    DEBUG_PRINTLN(mower.eventToString(event));
 #endif
 
     switch (event) {
@@ -195,8 +195,8 @@ void UndockingState::handleEvent(Mower& mower, Event event) {
         // Ignora altri eventi durante l'undocking
         default:
 #ifdef DEBUG_MODE
-            SERIAL_DEBUG.print(F("UNDOCKING: Ignoring event "));
-            SERIAL_DEBUG.println(mower.eventToString(event));
+            DEBUG_PRINT(F("UNDOCKING: Ignoring event "));
+            DEBUG_PRINTLN(mower.eventToString(event));
 #endif
             break;
     }

@@ -16,7 +16,9 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-#include "../LCD/LCDMenu.h"
+
+// Forward declaration per risolvere la dipendenza circolare
+class LCDMenu;
 
 /**
  * @brief State and event type definitions for the mower state machine.
@@ -700,6 +702,7 @@ private:
     
     // Error handling
     String lastError_;               ///< Last error message
+    String emergencyStopReason_;      ///< Reason for the last emergency stop
     unsigned long errorTimestamp_;    ///< Timestamp of last error (ms)
     static const unsigned long ERROR_RESET_TIMEOUT = 5000; ///< Time before error auto-reset (ms)
     

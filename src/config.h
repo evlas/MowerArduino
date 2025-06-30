@@ -74,7 +74,7 @@
 #define SAFETY_CHECK_INTERVAL 50        // [ms] Intervallo controlli sicurezza (20Hz)
 #define ODOMETRY_UPDATE_INTERVAL 10     // [ms] Intervallo aggiornamento odometria (100Hz)
 #define TELEMETRY_UPDATE_INTERVAL 1000  // [ms] Intervallo aggiornamento telemetria (1Hz)
-#define BATTERY_UPDATE_INTERVAL 5000    // [ms] Intervallo controllo batteria (0.2Hz)
+#define BATTERY_UPDATE_INTERVAL 1000    // [ms] Intervallo controllo batteria (0.2Hz)
 
 // ========================
 // SICUREZZA
@@ -250,7 +250,7 @@
 #define BATTERY_VOLTAGE_DIVIDER_RATIO BATTERY_VOLTAGE_DIVIDER  // Alias per compatibilità
 
 // Configurazione batteria LiPo
-#define BATTERY_CELLS          1
+#define BATTERY_CELLS          6
 #define BATTERY_CAPACITY       5.0f  // Ampere-ora
 
 // Parametri di tensione (per cella)
@@ -269,7 +269,7 @@
 #define BATTERY_CHARGED_THRESHOLD 90.0f  // Soglia di batteria carica (%)
 #define BATTERY_FULL_THRESHOLD 95.0f     // Soglia di batteria piena (%)
 #define BATTERY_LOW_THRESHOLD 30.0f      // Soglia di batteria scarica (%)
-#define BATTERY_CRITICAL_THRESHOLD 20.0f // Soglia di batteria critica (%)
+#define BATTERY_CRITICAL_THRESHOLD 20 // Soglia di batteria critica (20%)
 
 
 // --- TIMING MOVIMENTI ---
@@ -334,6 +334,12 @@
 
 // Le soglie di sicurezza sono definite nella sezione SICUREZZA all'inizio del file
 
+// ========================
+// CONFIGURAZIONE DISPLAY
+// ========================
+#define DISPLAY_REFRESH_INTERVAL 100  // [ms] Intervallo di aggiornamento del display
+#define LCD_BACKLIGHT_TIMEOUT 30000   // [ms] Timeout spegnimento retroilluminazione (30 secondi)
+
 // --- SCHEDULER ---
 #define MAX_SCHEDULE_SLOTS 7         // Numero massimo slot orari
 #define DEFAULT_MOWING_DURATION 120  // Durata taglio default (minuti)
@@ -343,12 +349,17 @@
 
 // --- DEBUGGING ---
 #ifdef DEBUG_MODE
-    #define DEBUG_PRINT(x) SERIAL_DEBUG.print(x)
-    #define DEBUG_PRINTLN(x) SERIAL_DEBUG.println(x)
-    #define DEBUG_PRINTF(...) SERIAL_DEBUG.printf(__VA_ARGS__)
+    #define DEBUG_PRINT(...) SERIAL_DEBUG.print(__VA_ARGS__)
+    #define DEBUG_PRINTLN(...) SERIAL_DEBUG.println(__VA_ARGS__)
+    #define DEBUG_PRINTF(fmt, ...) \
+        do { \
+            char buffer[128]; \
+            snprintf(buffer, sizeof(buffer), fmt, ##__VA_ARGS__); \
+            SERIAL_DEBUG.print(buffer); \
+        } while(0)
 #else
-    #define DEBUG_PRINT(x)
-    #define DEBUG_PRINTLN(x)
+    #define DEBUG_PRINT(...)
+    #define DEBUG_PRINTLN(...)
     #define DEBUG_PRINTF(...)
 #endif
 

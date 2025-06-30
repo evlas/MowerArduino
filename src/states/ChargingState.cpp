@@ -15,10 +15,10 @@ const unsigned long MAX_CHARGING_TIME_MS = 2 * 60 * 60 * 1000UL;
 
 void ChargingState::enter(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("CHARGING: Entering state"));
-    SERIAL_DEBUG.print(F("Battery level: "));
-    SERIAL_DEBUG.print(mower.getBatteryLevel());
-    SERIAL_DEBUG.println(F("%"));
+    DEBUG_PRINTLN(F("CHARGING: Entering state"));
+    DEBUG_PRINT(F("Battery level: "));
+    DEBUG_PRINT(mower.getBatteryLevel());
+    DEBUG_PRINTLN(F("%"));
 #endif
     
     // Inizializza le variabili di stato
@@ -28,7 +28,7 @@ void ChargingState::enter(Mower& mower) {
     // Attiva la ricarica
     if (!mower.enableCharging(true)) {
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("ERROR: Failed to enable charging"));
+        DEBUG_PRINTLN(F("ERROR: Failed to enable charging"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
         return;
@@ -58,7 +58,7 @@ void ChargingState::update(Mower& mower) {
     // Verifica il tempo di ricarica massimo
     if (currentTime - lastBatteryCheck_ > MAX_CHARGING_TIME_MS) {
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("CHARGING: Maximum charging time exceeded"));
+        DEBUG_PRINTLN(F("CHARGING: Maximum charging time exceeded"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
         return;
@@ -72,9 +72,9 @@ void ChargingState::update(Mower& mower) {
         int batteryLevel = static_cast<int>(mower.getBatteryLevel());
         
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("CHARGING: Battery level "));
-        SERIAL_DEBUG.print(batteryLevel);
-        SERIAL_DEBUG.println(F("%"));
+        DEBUG_PRINT(F("CHARGING: Battery level "));
+        DEBUG_PRINT(batteryLevel);
+        DEBUG_PRINTLN(F("%"));
 #endif
         
         mower.setLcdCursor(9, 1);
@@ -93,7 +93,7 @@ void ChargingState::update(Mower& mower) {
                 mower.updateLcdDisplay("Charging Complete!", "Battery: 100%");
                 
 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.println(F("CHARGING: Battery fully charged"));
+                DEBUG_PRINTLN(F("CHARGING: Battery fully charged"));
 #endif
             }
         } else {
@@ -114,16 +114,16 @@ void ChargingState::update(Mower& mower) {
 
 void ChargingState::exit(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("CHARGING: Exiting state"));
-    SERIAL_DEBUG.print(F("Final battery level: "));
-    SERIAL_DEBUG.print(mower.getBatteryLevel());
-    SERIAL_DEBUG.println(F("%"));
+    DEBUG_PRINTLN(F("CHARGING: Exiting state"));
+    DEBUG_PRINT(F("Final battery level: "));
+    DEBUG_PRINT(mower.getBatteryLevel());
+    DEBUG_PRINTLN(F("%"));
 #endif
     
     // Disattiva la ricarica quando si esce dallo stato
     if (!mower.enableCharging(false)) {
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("WARNING: Failed to disable charging"));
+        DEBUG_PRINTLN(F("WARNING: Failed to disable charging"));
 #endif
     }
     
@@ -133,8 +133,8 @@ void ChargingState::exit(Mower& mower) {
 
 void ChargingState::handleEvent(Mower& mower, Event event) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("CHARGING: Handling event "));
-    SERIAL_DEBUG.println(mower.eventToString(event));
+    DEBUG_PRINT(F("CHARGING: Handling event "));
+    DEBUG_PRINTLN(mower.eventToString(event));
 #endif
 
     switch (event) {
@@ -184,7 +184,7 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
                 mower.setState(mower.getMowingState());
             } else {
 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.println(F("CHARGING: Battery not sufficiently charged to start mowing"));
+                DEBUG_PRINTLN(F("CHARGING: Battery not sufficiently charged to start mowing"));
 #endif
                 // Segnale acustico per indicare che non può partire
                 mower.playBuzzerTone(1000, 200);
@@ -209,8 +209,8 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
         // Ignora altri eventi durante la ricarica
         default:
 #ifdef DEBUG_MODE
-            SERIAL_DEBUG.print(F("CHARGING: Ignoring event "));
-            SERIAL_DEBUG.println(mower.eventToString(event));
+            DEBUG_PRINT(F("CHARGING: Ignoring event "));
+            DEBUG_PRINTLN(mower.eventToString(event));
 #endif
             break;
     }

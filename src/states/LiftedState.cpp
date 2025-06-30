@@ -12,7 +12,7 @@ const unsigned long MAX_LIFTED_TIME = 5 * 60 * 1000UL;
 
 void LiftedState::enter(Mower& mower) {
 #ifdef DEBUG
-    SERIAL_DEBUG.println(F("LIFTED: Entering state"));
+    DEBUG_PRINTLN(F("LIFTED: Entering state"));
 #endif
     
     // Inizializza le variabili di stato
@@ -42,7 +42,7 @@ void LiftedState::update(Mower& mower) {
     // Verifica se il tempo massimo di sollevamento è stato superato
     if (currentTime - liftStartTime_ > MAX_LIFTED_TIME) {
 #ifdef DEBUG
-        SERIAL_DEBUG.println(F("LIFTED: Maximum lifted time exceeded"));
+        DEBUG_PRINTLN(F("LIFTED: Maximum lifted time exceeded"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
         return;

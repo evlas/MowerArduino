@@ -111,9 +111,9 @@ void BladeMotor::setSpeed(float percent) {
     static int lastSpeed = -1;
     if (percent != lastSpeed) {
         lastSpeed = percent;
-        SERIAL_DEBUG.print(F("Blade motor speed set to: "));
-        SERIAL_DEBUG.print(percent);
-        SERIAL_DEBUG.println("%");
+        DEBUG_PRINT(F("Blade motor speed set to: "));
+        DEBUG_PRINT(percent);
+        DEBUG_PRINTLN("%");
     }
     #endif
 }

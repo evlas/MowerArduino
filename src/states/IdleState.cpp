@@ -6,7 +6,7 @@
 
 void IdleState::enter(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("IDLE: Entering state"));
+    DEBUG_PRINTLN(F("IDLE: Entering state"));
 #endif
     
     // Azioni di entrata
@@ -20,7 +20,7 @@ void IdleState::update(Mower& mower) {
 
 void IdleState::exit(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("IDLE: Exiting state"));
+    DEBUG_PRINTLN(F("IDLE: Exiting state"));
 #endif
 }
 

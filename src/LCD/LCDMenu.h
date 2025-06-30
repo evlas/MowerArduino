@@ -4,9 +4,12 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include "../pin_config.h"
+#include "../config.h"
 
-// Forward declaration of LCDMenu class
-class LCDMenu;
+// Forward declarations
+class Mower;  // Forward declaration di Mower
+
+// Menu states
 
 // Menu states
 enum MenuState {
@@ -44,6 +47,21 @@ public:
     bool isMowingRequested() const { return mowingRequested; }
     bool isMaintenanceMode() const { return maintenanceMode; }
     
+    // Debug function to get state name
+    const char* getStateName(MenuState state);
+    void updateBacklight();
+    
+    void setState(MenuState newState) {
+        if (currentState != newState) {
+            DEBUG_PRINT("Stato cambiato da ");
+            DEBUG_PRINT(getStateName(currentState));
+            DEBUG_PRINT(" a ");
+            DEBUG_PRINTLN(getStateName(newState));
+            currentState = newState;
+            lastDisplayUpdate = 0; // Forza l'aggiornamento del display
+        }
+    }
+    
     // PID getters
     float getKp() const { return kp; }
     float getKi() const { return ki; }
@@ -75,20 +93,36 @@ private:
     MenuState currentState;
     uint8_t currentItem;
     PidParam currentPidParam;
+    unsigned long lastDisplayUpdate;  // Timestamp dell'ultimo aggiornamento del display
     bool mowingRequested;
     bool maintenanceMode;
     
     // PID parameters
     float kp, ki, kd;
     
+    // Backlight control
+    unsigned long lastUserActivity;    // Timestamp dell'ultima attività dell'utente
+    bool backlightOn;                  // Stato della retroilluminazione
+    
     // Button state tracking
     unsigned long lastButtonPress;
-    static const unsigned long DEBOUNCE_DELAY = 200;
     
     // EEPROM addresses for PID values
     static const int EEPROM_KP_ADDR = 0;
     static const int EEPROM_KI_ADDR = sizeof(float);
     static const int EEPROM_KD_ADDR = 2 * sizeof(float);
+    
+    // Mower instance pointer
+    Mower* mowerPtr;
+    
+public:
+    // Setter for mower pointer
+    void setMower(Mower* mower) {
+        mowerPtr = mower;
+    }
 };
+
+// Includi Mower.h dopo la definizione di LCDMenu
+#include "../functions/Mower.h"
 
 #endif // LCD_MENU_H

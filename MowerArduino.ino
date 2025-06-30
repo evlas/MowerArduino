@@ -52,7 +52,10 @@ Mower mower(lcdMenu);
  * This function is called once when the Arduino starts up.
  */
 void setup() {
+//    Wire.setClock(100000);
+//    Wire.setWireTimeout(300 /* us */, true /* reset_on_timeout */);
     Wire.begin();
+
     #ifdef DEBUG_MODE
     // Inizializza la seriale debug solo se il debug è abilitato
     SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
@@ -61,16 +64,10 @@ void setup() {
     delay(100);
     // Invia caratteri di test per sincronizzazione
     SERIAL_DEBUG.println();
-    SERIAL_DEBUG.println();
-    SERIAL_DEBUG.println(F("=== Mower System Starting ==="));
-    SERIAL_DEBUG.println(F("=== entra in lcd ==="));
     #endif
-    
-    // Initialize the LCD menu
-    lcdMenu.begin();
-    #ifdef DEBUG_MODE
-      SERIAL_DEBUG.println(F("=== esce da lcd ==="));
-    #endif  
+
+    DEBUG_PRINTLN(F("=== Mower System Starting ==="));
+
     // Initialize the mower system
     mower.begin();
 /*    
@@ -94,11 +91,9 @@ void setup() {
     wifiRemote.begin(SERIAL_WIFI_BAUD);
 */
     
-    #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("System initialized"));
-    SERIAL_DEBUG.print(F("Initial state: "));
-    SERIAL_DEBUG.println(mower.stateToString(mower.getState()));
-    #endif
+    DEBUG_PRINTLN(F("System initialized"));
+    DEBUG_PRINT(F("Initial state: "));
+    DEBUG_PRINTLN(mower.stateToString(mower.getState()));
 }
 
 /**
@@ -110,12 +105,13 @@ void setup() {
 void loop() {
     // Update the mower (this will handle state updates, sensors, etc.)
     mower.update();
-/*    
+    
+    /*    
     // Aggiorna il controllo remoto
     remoteCmd.update();
     // Gestisci la comunicazione WiFi
     wifiRemote.update();
-*/    
+    */    
     // Add a small delay to prevent watchdog resets
     delay(10);
 }

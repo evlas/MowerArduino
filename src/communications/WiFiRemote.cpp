@@ -34,8 +34,8 @@ void WiFiRemote::begin(unsigned long baudRate) {
     lastCommandTime_ = millis();
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("WiFiRemote: Inizializzazione SERIAL_WIFI su baud rate: "));
-    SERIAL_DEBUG.println(baudRate);
+    DEBUG_PRINT(F("WiFiRemote: Inizializzazione SERIAL_WIFI su baud rate: "));
+    DEBUG_PRINTLN(baudRate);
     #endif
 }
 
@@ -53,7 +53,7 @@ void WiFiRemote::update() {
     if (connected_ && (currentTime - lastCommandTime_ > CONNECTION_TIMEOUT)) {
         connected_ = false;
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("WiFiRemote: Timeout connessione"));
+        DEBUG_PRINTLN(F("WiFiRemote: Timeout connessione"));
         #endif
     }
 }
@@ -99,10 +99,10 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     // Verifica la lunghezza minima e i marker di inizio/fine
     if (length < HEADER_SIZE || data[0] != PROTOCOL_START_MARKER || data[length-1] != PROTOCOL_END_MARKER) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("WiFiRemote: Pacchetto non valido - "));
-        SERIAL_DEBUG.print(F("Lunghezza: ")); SERIAL_DEBUG.print(length);
-        SERIAL_DEBUG.print(F(" Start: 0x")); SERIAL_DEBUG.print(data[0], HEX);
-        SERIAL_DEBUG.print(F(" End: 0x")); SERIAL_DEBUG.println(data[length-1], HEX);
+        DEBUG_PRINT(F("WiFiRemote: Pacchetto non valido - "));
+        DEBUG_PRINT(F("Lunghezza: ")); DEBUG_PRINT(length);
+        DEBUG_PRINT(F(" Start: 0x")); DEBUG_PRINT(data[0], HEX);
+        DEBUG_PRINT(F(" End: 0x")); DEBUG_PRINTLN(data[length-1], HEX);
         #endif
         sendLog("Pacchetto non valido", true);
         return;
@@ -116,9 +116,9 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     // Verifica la lunghezza del payload
     if (length != HEADER_SIZE + payloadLength) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("WiFiRemote: Lunghezza payload non valida - "));
-        SERIAL_DEBUG.print(payloadLength); SERIAL_DEBUG.print(F(" vs "));
-        SERIAL_DEBUG.println(length - HEADER_SIZE);
+        DEBUG_PRINT(F("WiFiRemote: Lunghezza payload non valida - "));
+        DEBUG_PRINT(payloadLength); DEBUG_PRINT(F(" vs "));
+        DEBUG_PRINTLN(length - HEADER_SIZE);
         #endif
         sendLog("Lunghezza pacchetto non valida", true);
         return;
@@ -128,9 +128,9 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     uint16_t calculatedCrc = calculateCRC16(data + 6, payloadLength);
     if (calculatedCrc != receivedCrc) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("WiFiRemote: Errore CRC - "));
-        SERIAL_DEBUG.print(receivedCrc, HEX); SERIAL_DEBUG.print(F(" vs "));
-        SERIAL_DEBUG.println(calculatedCrc, HEX);
+        DEBUG_PRINT(F("WiFiRemote: Errore CRC - "));
+        DEBUG_PRINT(receivedCrc, HEX); DEBUG_PRINT(F(" vs "));
+        DEBUG_PRINTLN(calculatedCrc, HEX);
         #endif
         sendLog("Errore CRC", true);
         return;
@@ -143,7 +143,7 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     
     if (!wasConnected) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("WiFiRemote: Connessione stabilita"));
+        DEBUG_PRINTLN(F("WiFiRemote: Connessione stabilita"));
         #endif
         sendLog("Connessione WiFi stabilita");
     }
@@ -154,8 +154,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     bool commandProcessed = false;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("WiFiRemote: Elaborazione comando 0x"));
-    SERIAL_DEBUG.println(static_cast<uint8_t>(type), HEX);
+    DEBUG_PRINT(F("WiFiRemote: Elaborazione comando 0x"));
+    DEBUG_PRINTLN(static_cast<uint8_t>(type), HEX);
     #endif
     
     switch (type) {
@@ -166,12 +166,12 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
                 cmdData.distance = cmd->distance;
                 
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: MOVE - Speed: "));
-                SERIAL_DEBUG.print(cmdData.speed);
-                SERIAL_DEBUG.print(F(" Distance: "));
-                SERIAL_DEBUG.print(cmdData.distance);
-                SERIAL_DEBUG.print(F(" Direction: "));
-                SERIAL_DEBUG.println(cmd->direction);
+                DEBUG_PRINT(F("WiFiRemote: MOVE - Speed: "));
+                DEBUG_PRINT(cmdData.speed);
+                DEBUG_PRINT(F(" Distance: "));
+                DEBUG_PRINT(cmdData.distance);
+                DEBUG_PRINT(F(" Direction: "));
+                DEBUG_PRINTLN(cmd->direction);
                 #endif
                 
                 switch (cmd->direction) {
@@ -192,12 +192,12 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
                 cmdData.angle = cmd->angle;
                 
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: ROTATE - Speed: "));
-                SERIAL_DEBUG.print(cmdData.speed);
-                SERIAL_DEBUG.print(F(" Angle: "));
-                SERIAL_DEBUG.print(cmdData.angle);
-                SERIAL_DEBUG.print(F(" Direction: "));
-                SERIAL_DEBUG.println(cmd->direction);
+                DEBUG_PRINT(F("WiFiRemote: ROTATE - Speed: "));
+                DEBUG_PRINT(cmdData.speed);
+                DEBUG_PRINT(F(" Angle: "));
+                DEBUG_PRINT(cmdData.angle);
+                DEBUG_PRINT(F(" Direction: "));
+                DEBUG_PRINTLN(cmd->direction);
                 #endif
                 
                 if (cmd->direction == 0) {
@@ -212,8 +212,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         case MessageType::CMD_MOW: {
             if (payloadLength >= 1) {
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: MOW - Action: "));
-                SERIAL_DEBUG.println(payload[0]);
+                DEBUG_PRINT(F("WiFiRemote: MOW - Action: "));
+                DEBUG_PRINTLN(payload[0]);
                 #endif
                 
                 switch (payload[0]) {
@@ -230,8 +230,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         case MessageType::CMD_DOCK: {
             if (payloadLength >= 1) {
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: DOCK - Action: "));
-                SERIAL_DEBUG.println(payload[0]);
+                DEBUG_PRINT(F("WiFiRemote: DOCK - Action: "));
+                DEBUG_PRINTLN(payload[0]);
                 #endif
                 
                 switch (payload[0]) {
@@ -246,7 +246,7 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         
         case MessageType::CMD_EMERGENCY:
             #ifdef DEBUG_MODE
-            SERIAL_DEBUG.println(F("WiFiRemote: EMERGENCY_STOP"));
+            DEBUG_PRINTLN(F("WiFiRemote: EMERGENCY_STOP"));
             #endif
             commandProcessed = remote_.processCommand(RemoteCommandType::EMERGENCY_STOP);
             break;
@@ -258,8 +258,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
                 cmdData.speed = static_cast<float>(speed);
                 
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: SET_SPEED - "));
-                SERIAL_DEBUG.println(cmdData.speed);
+                DEBUG_PRINT(F("WiFiRemote: SET_SPEED - "));
+                DEBUG_PRINTLN(cmdData.speed);
                 #endif
                 
                 commandProcessed = remote_.processCommand(RemoteCommandType::SET_SPEED, cmdData);
@@ -272,8 +272,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
                 cmdData.speed = static_cast<float>(payload[0] & 0x7F);  // Assicura valore positivo
                 
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: SET_BLADE_SPEED - "));
-                SERIAL_DEBUG.println(cmdData.speed);
+                DEBUG_PRINT(F("WiFiRemote: SET_BLADE_SPEED - "));
+                DEBUG_PRINTLN(cmdData.speed);
                 #endif
                 
                 commandProcessed = remote_.processCommand(RemoteCommandType::SET_BLADE_SPEED, cmdData);
@@ -285,8 +285,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
                 cmdData.navMode = static_cast<NavigationMode>(payload[0]);
                 
                 #ifdef DEBUG_MODE
-                SERIAL_DEBUG.print(F("WiFiRemote: SET_NAV_MODE - "));
-                SERIAL_DEBUG.println(static_cast<int>(cmdData.navMode));
+                DEBUG_PRINT(F("WiFiRemote: SET_NAV_MODE - "));
+                DEBUG_PRINTLN(static_cast<int>(cmdData.navMode));
                 #endif
                 
                 commandProcessed = remote_.processCommand(RemoteCommandType::SET_NAV_MODE, cmdData);
@@ -296,7 +296,7 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         case MessageType::CMD_CUSTOM:
             // Implementa la logica per i comandi personalizzati
             #ifdef DEBUG_MODE
-            SERIAL_DEBUG.println(F("WiFiRemote: Comando personalizzato ricevuto"));
+            DEBUG_PRINTLN(F("WiFiRemote: Comando personalizzato ricevuto"));
             #endif
             if (payloadLength > 0) {
                 // Estrai il comando e i parametri
@@ -309,7 +309,7 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         case MessageType::RSP_STATUS:
             // Invia lo stato completo
             #ifdef DEBUG_MODE
-            SERIAL_DEBUG.println(F("WiFiRemote: Richiesta stato"));
+            DEBUG_PRINTLN(F("WiFiRemote: Richiesta stato"));
             #endif
             sendStatus(true);
             commandProcessed = true;
@@ -318,8 +318,8 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
             
         default:
             #ifdef DEBUG_MODE
-            SERIAL_DEBUG.print(F("WiFiRemote: Comando sconosciuto: 0x"));
-            SERIAL_DEBUG.println(static_cast<uint8_t>(type), HEX);
+            DEBUG_PRINT(F("WiFiRemote: Comando sconosciuto: 0x"));
+            DEBUG_PRINTLN(static_cast<uint8_t>(type), HEX);
             #endif
             break;
     }
@@ -367,7 +367,7 @@ void WiFiRemote::sendStatus(bool force) {
     // Invia solo se lo stato è cambiato o se è forzato
     if (statusChanged) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("WiFiRemote: Invio stato"));
+        DEBUG_PRINTLN(F("WiFiRemote: Invio stato"));
         #endif
         
         // Invia il pacchetto di stato
@@ -414,10 +414,10 @@ bool WiFiRemote::sendPacket(MessageType type, const void* data, uint16_t length)
     // Verifica la lunghezza massima
     if (length > MAX_PAYLOAD_SIZE) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("WiFiRemote: Dati troppo grandi per il pacchetto: "));
-        SERIAL_DEBUG.print(length);
-        SERIAL_DEBUG.print(F(" > "));
-        SERIAL_DEBUG.println(MAX_PAYLOAD_SIZE);
+        DEBUG_PRINT(F("WiFiRemote: Dati troppo grandi per il pacchetto: "));
+        DEBUG_PRINT(length);
+        DEBUG_PRINT(F(" > "));
+        DEBUG_PRINTLN(MAX_PAYLOAD_SIZE);
         #endif
         sendLog("Dati troppo grandi per il pacchetto", true);
         return false;
@@ -449,24 +449,24 @@ bool WiFiRemote::sendPacket(MessageType type, const void* data, uint16_t length)
     packet[HEADER_SIZE + length] = PROTOCOL_END_MARKER;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("WiFiRemote: Invio pacchetto - Tipo: 0x"));
-    SERIAL_DEBUG.print(static_cast<uint8_t>(type), HEX);
-    SERIAL_DEBUG.print(F(" Lunghezza: "));
-    SERIAL_DEBUG.print(length);
-    SERIAL_DEBUG.print(F(" CRC: 0x"));
-    SERIAL_DEBUG.println(crc, HEX);
+    DEBUG_PRINT(F("WiFiRemote: Invio pacchetto - Tipo: 0x"));
+    DEBUG_PRINT(static_cast<uint8_t>(type), HEX);
+    DEBUG_PRINT(F(" Lunghezza: "));
+    DEBUG_PRINT(length);
+    DEBUG_PRINT(F(" CRC: 0x"));
+    DEBUG_PRINTLN(crc, HEX);
     
     // Stampa i primi 16 byte del payload in esadecimale per il debug
     if (length > 0) {
-        SERIAL_DEBUG.print(F("Payload (max 16 byte):"));
-        for (int i = 0; i < min(16, static_cast<int>(length)); i++) {
-            if (i % 8 == 0) SERIAL_DEBUG.println();
-            SERIAL_DEBUG.print(F("0x"));
-            if (packet[HEADER_SIZE + i] < 0x10) SERIAL_DEBUG.print('0');
-            SERIAL_DEBUG.print(packet[HEADER_SIZE + i], HEX);
-            SERIAL_DEBUG.print(' ');
+        DEBUG_PRINT(F("Payload (max 16 byte):"));
+        for (size_t i = 0; i < min(length, 16); i++) {
+            if (i % 8 == 0) DEBUG_PRINTLN();
+            DEBUG_PRINT(F("0x"));
+            if (packet[HEADER_SIZE + i] < 0x10) DEBUG_PRINT('0');
+            DEBUG_PRINT(packet[HEADER_SIZE + i], HEX);
+            DEBUG_PRINT(' ');
         }
-        SERIAL_DEBUG.println();
+        DEBUG_PRINTLN();
     }
     #endif
     
@@ -477,10 +477,10 @@ bool WiFiRemote::sendPacket(MessageType type, const void* data, uint16_t length)
     // Verifica che tutti i byte siano stati scritti
     if (bytesWritten != static_cast<size_t>(HEADER_SIZE + length + 1)) {
         #ifdef DEBUG_MODE
-        SERIAL_DEBUG.print(F("WiFiRemote: Errore nell'invio del pacchetto - Scritti: "));
-        SERIAL_DEBUG.print(bytesWritten);
-        SERIAL_DEBUG.print(F(" / "));
-        SERIAL_DEBUG.println(HEADER_SIZE + length + 1);
+        DEBUG_PRINT(F("WiFiRemote: Errore nell'invio del pacchetto - Scritti: "));
+        DEBUG_PRINT(bytesWritten);
+        DEBUG_PRINT(F(" / "));
+        DEBUG_PRINTLN(HEADER_SIZE + length + 1);
         #endif
         return false;
     }
@@ -581,9 +581,9 @@ void WiFiRemote::sendJsonResponse(JsonDocument& json) {
     serializeJson(json, jsonStr);
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("WiFiRemote: Invio risposta JSON:"));
+    DEBUG_PRINTLN(F("WiFiRemote: Invio risposta JSON:"));
     serializeJsonPretty(json, SERIAL_DEBUG);
-    SERIAL_DEBUG.println();
+    DEBUG_PRINTLN();
     #endif
     
     // Invia il pacchetto JSON

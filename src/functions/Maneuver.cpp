@@ -41,8 +41,8 @@ void Maneuver::forward(int duration, float speedPercent) {
     movementEndTime_ = millis() + duration;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Forward at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Forward at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -67,8 +67,8 @@ void Maneuver::backward(int duration, float speedPercent) {
     movementEndTime_ = millis() + duration;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Backward at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Backward at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -83,8 +83,8 @@ void Maneuver::turnLeft(int angle, float speedPercent) {
     turning_ = true;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Turn left at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Turn left at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -99,8 +99,8 @@ void Maneuver::turnRight(int angle, float speedPercent) {
     turning_ = true;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Turn right at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Turn right at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -115,8 +115,8 @@ void Maneuver::rotateLeft(float speedPercent) {
     turning_ = true;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Rotate left at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Rotate left at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -131,8 +131,8 @@ void Maneuver::rotateRight(float speedPercent) {
     turning_ = true;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Rotate right at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Rotate right at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -157,8 +157,8 @@ void Maneuver::moveStraight(int distance, float speedPercent) {
     targetDistance_ = abs(distance) / 100.0f; // Converti cm in metri
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Move straight at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Move straight at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -179,8 +179,8 @@ void Maneuver::rotate(int degrees, float speedPercent) {
     turning_ = true;
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Rotate at speed: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Rotate at speed: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -194,10 +194,10 @@ void Maneuver::spiral(float maxRadius, float speedPercent) {
     float currentAngle = 0.0f;  // Angolo in radianti
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Avvio spirale - Raggio max: "));
-    SERIAL_DEBUG.print(maxRadius);
-    SERIAL_DEBUG.print(F(" m, Velocità: "));
-    SERIAL_DEBUG.println(speedPercent);
+    DEBUG_PRINT(F("Avvio spirale - Raggio max: "));
+    DEBUG_PRINT(maxRadius);
+    DEBUG_PRINT(F(" m, Velocità: "));
+    DEBUG_PRINTLN(speedPercent);
     #endif
 }
 
@@ -300,10 +300,10 @@ void Maneuver::startMowing(float bladeWidth, float speed) {
     forward(0, speed);  // 0 = durata illimitata
     
     #ifdef DEBUG_MODE
-    SERIAL_DEBUG.print(F("Avvio taglio - Larghezza lama: "));
-    SERIAL_DEBUG.print(bladeWidth_);
-    SERIAL_DEBUG.print(F(" m, Velocità: "));
-    SERIAL_DEBUG.println(speed);
+    DEBUG_PRINT(F("Avvio taglio - Larghezza lama: "));
+    DEBUG_PRINT(bladeWidth_);
+    DEBUG_PRINT(F(" m, Velocità: "));
+    DEBUG_PRINTLN(speed);
     #endif
 }
 

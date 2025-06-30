@@ -1,8 +1,8 @@
+#include <Arduino.h>
 #include "Mower.h"
 #include "../config.h"  // Per le costanti di configurazione
 #include "../pin_config.h"
-#include <Arduino.h>
-#include "../LCD/LCDMenu.h"
+#include "../LCD/LCDMenu.h"  // Deve essere incluso dopo Mower.h
 
 // Includi tutti gli stati
 #include "../states/IdleState.h"
@@ -55,16 +55,13 @@ Mower::Mower(LCDMenu& lcdMenu) :
 
 void Mower::begin() {
     // Initialize serial communication for debug if enabled
-    #ifdef DEBUG_MODE
-        SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
-//        DEBUG_PRINTLN("Debug serial initialized");
-    #endif
+    DEBUG_PRINTLN("Debug serial initialized");
     
     // Il display LCD è gestito dalla classe LCDMenu
-    
+    lcdMenu.begin();
+
     // Inizializza il sensore di batteria
     batterySensor.begin();
-    DEBUG_PRINTLN("Battery sensor initialized");
     
     // Inizializza i sensori di urto
     bumpSensors.begin();
@@ -75,7 +72,11 @@ void Mower::begin() {
     // Inizializza l'IMU
     imu.begin();
     DEBUG_PRINTLN("IMU inizializzata");
-    
+
+    #ifdef ENABLE_GPS
+    gps.begin();
+    #endif
+
     // Inizializza il sensore di pioggia
     rainSensor.begin();
     
@@ -84,38 +85,10 @@ void Mower::begin() {
     
     // Imposta lo stato iniziale
     setState(State::IDLE);
-
-    Wire.begin();
-
-    // Initialize LCD display
-    lcdMenu.print("Mower");
-    lcdMenu.setCursor(0, 1);
-    lcdMenu.print("Starting...");
     
     // Initialize actuators
     motorRelay.begin(RELAY_MOTORS_PIN);
     chargingRelay.begin(RELAY_CHARGING_PIN);
-       
-    // Initialize battery sensor
-    batterySensor.begin();
-
-    // Initialize bump sensors
-    bumpSensors.begin();
-    
-    // Initialize ultrasonic sensors
-    ultrasonicSensors.begin();
-    
-    // Initialize IMU
-    imu.begin();
-
-    #ifdef ENABLE_GPS
-        gps.begin();
-    #endif
-
-    // Initialize rain sensor
-    rainSensor.begin();
-    
-    // Initialize other components
     stopMotors();
 
     delay(5000);
@@ -159,13 +132,13 @@ void Mower::update() {
         }
     }
     
+    // Aggiorna il menu LCD e gestisci le pressioni dei pulsanti
+    lcdMenu.update();
+    
     // Aggiorna lo stato corrente
     if (currentState_ != nullptr) {
         currentState_->update(*this);
     }
-    
-    // Ulteriori controlli di sicurezza
-    checkSafety();
     
     // Puoi aggiungere logging o debug qui se necessario
 }
@@ -190,9 +163,9 @@ void Mower::startBlades() {
         
         // Debug: stampa lo stato corrente
         #ifdef DEBUG
-            SERIAL_DEBUG.print("Blades started at speed: ");
-            SERIAL_DEBUG.print(motorSpeed);
-            SERIAL_DEBUG.println("%");
+            DEBUG_PRINT("Blades started at speed: ");
+            DEBUG_PRINT(motorSpeed);
+            DEBUG_PRINTLN("%");
         #endif
     }
 }
@@ -210,12 +183,12 @@ void Mower::setBladeSpeed(float speed) {
     
     // Debug: stampa i valori per il debug
     #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG.print("[DEBUG] setBladeSpeed: old=");
-        SERIAL_DEBUG.print(oldSpeed);
-        SERIAL_DEBUG.print("%, new=");
-        SERIAL_DEBUG.print(bladeSpeed_ * 100);
-        SERIAL_DEBUG.print("%, bladesRunning_=");
-        SERIAL_DEBUG.println(bladesRunning_ ? "true" : "false");
+        DEBUG_PRINT("[DEBUG] setBladeSpeed: old=");
+        DEBUG_PRINT(oldSpeed);
+        DEBUG_PRINT("%, new=");
+        DEBUG_PRINT(bladeSpeed_ * 100);
+        DEBUG_PRINT("%, bladesRunning_=");
+        DEBUG_PRINTLN(bladesRunning_ ? "true" : "false");
     #endif
     
     if (bladesRunning_ && (abs(oldSpeed - bladeSpeed_) > 0.1f)) {
@@ -240,7 +213,7 @@ void Mower::stopBlades() {
         bladeSpeed_ = 0.0f;
         
         #ifdef DEBUG
-            SERIAL_DEBUG.println("Blades stopped");
+            DEBUG_PRINTLN("Blades stopped");
         #endif
     }
 }
@@ -255,8 +228,8 @@ void Mower::setLeftMotorSpeed(float speed) {
         leftMotor.setSpeed(motorSpeed);
         
         #ifdef DEBUG
-        SERIAL_DEBUG.print("Left motor speed set to: ");
-        SERIAL_DEBUG.println(motorSpeed);
+        DEBUG_PRINT("Left motor speed set to: ");
+        DEBUG_PRINTLN(motorSpeed);
         #endif
     }
 }
@@ -271,8 +244,8 @@ void Mower::setRightMotorSpeed(float speed) {
         rightMotor.setSpeed(motorSpeed);
         
         #ifdef DEBUG
-        SERIAL_DEBUG.print("Right motor speed set to: ");
-        SERIAL_DEBUG.println(motorSpeed);
+        DEBUG_PRINT("Right motor speed set to: ");
+        DEBUG_PRINTLN(motorSpeed);
         #endif
     }
 }
@@ -285,7 +258,7 @@ void Mower::stopDriveMotors() {
     rightMotorSpeed_ = 0;
     
     #ifdef DEBUG
-    SERIAL_DEBUG.println("Drive motors stopped");
+    DEBUG_PRINTLN("Drive motors stopped");
     #endif
 }
 
@@ -295,7 +268,7 @@ void Mower::startDriveMotors() {
         setLeftMotorSpeed(leftMotorSpeed_);
         setRightMotorSpeed(rightMotorSpeed_);
         #ifdef DEBUG
-        SERIAL_DEBUG.println("Drive motors started");
+        DEBUG_PRINTLN("Drive motors started");
         #endif
     }
 }
@@ -306,7 +279,7 @@ void Mower::stopMotors() {
     stopDriveMotors();
     
     #ifdef DEBUG
-    SERIAL_DEBUG.println("All motors stopped");
+    DEBUG_PRINTLN("All motors stopped");
     #endif
 }
 
@@ -322,7 +295,7 @@ void Mower::startMowing() {
 
 void Mower::startDocking() {
     #ifdef DEBUG
-    SERIAL_DEBUG.println("Starting docking procedure");
+    DEBUG_PRINTLN("Starting docking procedure");
     #endif
     changeState(getDockingState());
 }
@@ -353,6 +326,8 @@ void Mower::updateSensors() {
     // Aggiorna il sensore di batteria
     batterySensor.update();
     
+    lcdMenu.update();
+
     // Aggiorna lo stato della batteria
     batteryLevel_ = batterySensor.getBatteryPercentage();
     bool wasCharging = charging_;
@@ -394,14 +369,14 @@ void Mower::updateSensors() {
     if (currentTime - lastBatteryLog > 10000) { // Ogni 10 secondi
         lastBatteryLog = currentTime;
         #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG.print(F("Battery: "));
-        SERIAL_DEBUG.print(batterySensor.getBatteryPercentage());
-        SERIAL_DEBUG.print(F("% "));
-        SERIAL_DEBUG.print(batterySensor.getVoltage());
-        SERIAL_DEBUG.print(F("V "));
-        SERIAL_DEBUG.print(batterySensor.getCurrent());
-        SERIAL_DEBUG.print(F("A "));
-        SERIAL_DEBUG.println(charging_ ? "CHARGING" : "DISCHARGING");
+        DEBUG_PRINT(F("Battery: "));
+        DEBUG_PRINT(batterySensor.getBatteryPercentage());
+        DEBUG_PRINT(F("% "));
+        DEBUG_PRINT(batterySensor.getVoltage());
+        DEBUG_PRINT(F("V "));
+        DEBUG_PRINT(batterySensor.getCurrent());
+        DEBUG_PRINT(F("A "));
+        DEBUG_PRINTLN(charging_ ? "CHARGING" : "DISCHARGING");
         #endif
     }
     
@@ -483,15 +458,21 @@ void Mower::handleEvent(Event event) {
 // Metodi di sistema
 void Mower::emergencyStop() {
     if (!emergencyStopActive_) {
+        DEBUG_PRINTLN("EMERGENCY STOP ACTIVATED - Current state: " + String(stateToString(getState())));
         emergencyStopActive_ = true;
         stopBlades();
         stopDriveMotors();
+        
+        // Log stack trace (limited to last few states)
+        DEBUG_PRINTLN("Emergency stop called from: " + String(emergencyStopReason_));
         
         // Usa il nuovo sistema di stati
         changeState(getEmergencyStopState());
         
         // Invia l'evento di emergenza
         handleEvent(Event::EMERGENCY_STOP);
+    } else {
+        DEBUG_PRINTLN("Emergency stop already active");
     }
 }
 
@@ -653,16 +634,16 @@ void Mower::logStatus() {
     
     lastLog = millis();
     
-    SERIAL_DEBUG.print("Stato: ");
-    SERIAL_DEBUG.print(stateToString(getState()));
-    SERIAL_DEBUG.print(", Batteria: ");
-    SERIAL_DEBUG.print(batteryLevel_);
-    SERIAL_DEBUG.print("%, Carica: ");
-    SERIAL_DEBUG.print(charging_ ? "SI" : "NO");
-    SERIAL_DEBUG.print(", Bordo: ");
-    SERIAL_DEBUG.print(borderDetected_ ? "RILEVATO" : "NO");
-    SERIAL_DEBUG.print(", Urto: ");
-    SERIAL_DEBUG.println(collisionDetected_ ? "RILEVATO" : "NO");
+    DEBUG_PRINT("Stato: ");
+    DEBUG_PRINT(stateToString(getState()));
+    DEBUG_PRINT(", Batteria: ");
+    DEBUG_PRINT(batteryLevel_);
+    DEBUG_PRINT("%, Carica: ");
+    DEBUG_PRINT(charging_ ? "SI" : "NO");
+    DEBUG_PRINT(", Bordo: ");
+    DEBUG_PRINT(borderDetected_ ? "RILEVATO" : "NO");
+    DEBUG_PRINT(", Urto: ");
+    DEBUG_PRINTLN(collisionDetected_ ? "RILEVATO" : "NO");
     #endif
 }
 
@@ -824,10 +805,10 @@ void Mower::updateMotors() {
         static unsigned long lastDebugTime = 0;
         if (millis() - lastDebugTime > 1000) {
             lastDebugTime = millis();
-            SERIAL_DEBUG.print("Motors - L: ");
-            SERIAL_DEBUG.print(leftMotorSpeed_);
-            SERIAL_DEBUG.print(", R: ");
-            SERIAL_DEBUG.println(rightMotorSpeed_);
+            DEBUG_PRINT("Motors - L: ");
+            DEBUG_PRINT(leftMotorSpeed_);
+            DEBUG_PRINT(", R: ");
+            DEBUG_PRINTLN(rightMotorSpeed_);
         }
         #endif
     }
@@ -836,16 +817,28 @@ void Mower::updateMotors() {
 void Mower::checkSafety() {
     // Verifica le condizioni di sicurezza e applica l'arresto di emergenza se necessario
     if (isLifted()) {
+        DEBUG_PRINTLN("SAFETY: Lifted detected, triggering emergency stop");
+        emergencyStopReason_ = "LIFT_DETECTED";
         emergencyStop();
         handleEvent(Event::LIFT_DETECTED);
     } else if (isBatteryCritical()) {
+        DEBUG_PRINTLN("SAFETY: Critical battery level detected, triggering emergency stop");
+        emergencyStopReason_ = "BATTERY_CRITICAL";
         emergencyStop();
         handleEvent(Event::BATTERY_CRITICAL);
     } else if (isCollisionDetected()) {
+        DEBUG_PRINTLN("SAFETY: Collision detected, triggering emergency stop");
+        emergencyStopReason_ = "COLLISION_DETECTED";
         emergencyStop();
         handleEvent(Event::OBSTACLE_DETECTED);
     } else {
         // Ferma i motori per sicurezza se nessuna condizione di sicurezza è attiva
+        static unsigned long lastMotorStopLog = 0;
+        unsigned long currentTime = millis();
+        if (currentTime - lastMotorStopLog > 10000) { // Log every 10 seconds at most
+            DEBUG_PRINTLN("SAFETY: No safety issues detected, ensuring motors are stopped");
+            lastMotorStopLog = currentTime;
+        }
         stopDriveMotors();
     }
 }
@@ -908,8 +901,8 @@ void Mower::setNavigationMode(NavigationMode mode) {
     if (navigationMode_ != mode) {
         navigationMode_ = mode;
         #ifdef DEBUG
-        SERIAL_DEBUG.print(F("Navigation mode set to: "));
-        SERIAL_DEBUG.println(navigationModeToString(mode));
+        DEBUG_PRINT(F("Navigation mode set to: "));
+        DEBUG_PRINTLN(navigationModeToString(mode));
         #endif
     }
 }
@@ -925,14 +918,14 @@ bool Mower::enableCharging(bool enable) {
         chargingRelay.on();
         charging_ = true;
         #ifdef DEBUG
-        SERIAL_DEBUG.println(F("Charging enabled"));
+        DEBUG_PRINTLN(F("Charging enabled"));
         #endif
     } else {
         // Disattiva la ricarica
         chargingRelay.off();
         charging_ = false;
         #ifdef DEBUG
-        SERIAL_DEBUG.println(F("Charging disabled"));
+        DEBUG_PRINTLN(F("Charging disabled"));
         #endif
     }
     

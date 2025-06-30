@@ -13,7 +13,7 @@ const unsigned long PHASE_TIMEOUT = 30000UL;  // 30 secondi per fase
 
 void DockingState::enter(Mower& mower) {
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("DOCKING: Entering state"));
+    DEBUG_PRINTLN(F("DOCKING: Entering state"));
 #endif
     
     // Inizializza la fase di docking
@@ -51,7 +51,7 @@ void DockingState::update(Mower& mower) {
     // Verifica il timeout generale di docking
     if (currentTime - dockingStartTime_ > DOCKING_TIMEOUT) {
 #ifdef DEBUG_MODE
-        SERIAL_DEBUG.println(F("DOCKING: Timeout during docking"));
+        DEBUG_PRINTLN(F("DOCKING: Timeout during docking"));
 #endif
         mower.handleEvent(Event::ERROR_DETECTED);
         return;
@@ -136,7 +136,7 @@ void DockingState::exit(Mower& mower) {
     mower.playBuzzerTone(1000, 200);
     
 #ifdef DEBUG_MODE
-    SERIAL_DEBUG.println(F("DOCKING: Exiting state"));
+    DEBUG_PRINTLN(F("DOCKING: Exiting state"));
 #endif
 }
 
@@ -238,8 +238,8 @@ void DockingState::changePhase(DockingPhase newPhase) {
             case DockingPhase::FINAL_APPROACH: phaseName = "FINAL_APPROACH"; break;
             case DockingPhase::DOCKED: phaseName = "DOCKED"; break;
         }
-        SERIAL_DEBUG.print(F("DOCKING: Changing phase to "));
-        SERIAL_DEBUG.println(phaseName);
+        DEBUG_PRINT(F("DOCKING: Changing phase to "));
+        DEBUG_PRINTLN(phaseName);
 #endif
     }
 }
