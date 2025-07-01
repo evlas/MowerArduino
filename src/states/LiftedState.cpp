@@ -25,14 +25,9 @@ void LiftedState::enter(Mower& mower) {
     // Disattiva le lame se erano accese
     mower.stopBlades();
     
-    // Aggiorna il display
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("LIFTED!");
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd("Place me down!");
+    // Display updates are now handled by the LCDMenu class
     
-    // Segnale acustico di avviso
+    // Play warning sound
     mower.playBuzzerTone(1000, 500);  // 1000Hz for 500ms
 }
 
@@ -52,14 +47,7 @@ void LiftedState::update(Mower& mower) {
     if (!liftConfirmed_ && (currentTime - liftStartTime_ > LIFT_CONFIRMATION_TIME)) {
         liftConfirmed_ = true;
         
-        // Aggiorna il display
-        mower.clearLcdDisplay();
-        mower.setLcdCursor(0, 0);
-        mower.printToLcd("LIFTED!");
-        mower.setLcdCursor(0, 1);
-        mower.printToLcd("Press button...");
-        
-        // Emetti un altro segnale acustico
+        // Play confirmation sound
         mower.playBuzzerTone(1000, 500);  // 1000Hz for 500ms
     }
     
@@ -80,8 +68,7 @@ void LiftedState::exit(Mower& mower) {
     // Disattiva eventuali segnali acustici
     mower.stopBuzzer();
     
-    // Pulisci il display
-    mower.clearLcdDisplay();
+    // Display cleanup is handled by LCDMenu
 }
 
 void LiftedState::handleEvent(Mower& mower, Event event) {

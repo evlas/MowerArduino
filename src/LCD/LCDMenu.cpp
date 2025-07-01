@@ -75,18 +75,22 @@ void LCDMenu::update() {
         
         bool buttonPressed = false;
         
-        // Se siamo in STATUS_DISPLAY, qualsiasi pulsante porta al menu principale
+        // Se siamo in STATUS_DISPLAY, solo il tasto START porta al menu principale
         if (currentState == STATUS_DISPLAY) {
-            if (digitalRead(START_BUTTON_PIN) == LOW || 
-                digitalRead(PLUS_BUTTON_PIN) == LOW || 
-                digitalRead(MINUS_BUTTON_PIN) == LOW || 
-                digitalRead(STOP_BUTTON_PIN) == LOW) {
-                
-                DEBUG_PRINTLN("Button pressed in STATUS_DISPLAY, switching to MAIN_MENU");
+            if (digitalRead(START_BUTTON_PIN) == LOW) {
+                DEBUG_PRINTLN("START button pressed in STATUS_DISPLAY, switching to MAIN_MENU");
                 currentState = MAIN_MENU;
                 currentItem = 0;
                 lastButtonPress = currentTime;
                 updateDisplay();
+                return;
+            }
+            // Ignora gli altri pulsanti in STATUS_DISPLAY
+            else if (digitalRead(PLUS_BUTTON_PIN) == LOW || 
+                    digitalRead(MINUS_BUTTON_PIN) == LOW || 
+                    digitalRead(STOP_BUTTON_PIN) == LOW) {
+                // Registra il premuto ma non fare nulla
+                lastButtonPress = currentTime;
                 return;
             }
         }
@@ -137,7 +141,13 @@ void LCDMenu::update() {
         if (currentState == STATUS_DISPLAY) {
             updateStatusDisplay();
         } else {
-            updateDisplay();
+            // Se siamo in un menu, aggiorna solo se c'è stato un cambiamento di stato
+            // o se è passato più tempo dall'ultimo aggiornamento
+            static unsigned long lastMenuUpdate = 0;
+            if (currentTime - lastMenuUpdate >= 1000) {  // Aggiorna il menu ogni secondo invece che ogni 500ms
+                updateDisplay();
+                lastMenuUpdate = currentTime;
+            }
         }
         lastDisplayUpdate = currentTime;
     }
@@ -279,7 +289,9 @@ void LCDMenu::handleMowingMenu(uint8_t button) {
         if (mowerPtr) {
             mowerPtr->handleEvent(Event::START_MOWING);
         }
-        currentState = MAIN_MENU;
+        // Switch to status display after starting mowing
+        currentState = STATUS_DISPLAY;
+        DEBUG_PRINTLN("Mowing started, switching to STATUS_DISPLAY");
     } else if (button == STOP_BUTTON_PIN) {
         currentState = MAIN_MENU;
     }

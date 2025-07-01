@@ -17,20 +17,9 @@ DEBUG_PRINTLN(F("EMERGENCY: Entering state"));
     lastBeepTime_ = 0;
     isBeeping_ = false;
     
-    // Mostra il messaggio di emergenza sul display
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("!!! EMERGENCY STOP !!!");
-    mower.setLcdCursor(0, 1);
+    // Display updates are now handled by the LCDMenu class
     
-    // Mostra il messaggio di errore
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("EMERGENCY STOP!");
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd("Check and reset");
-    
-    // Emetti il primo segnale acustico
+    // Play emergency sound sequence
     mower.playBuzzerTone(2000, 500);
     lastBeepTime_ = millis();
     isBeeping_ = true;
@@ -69,19 +58,10 @@ DEBUG_PRINTLN(F("EMERGENCY: Exiting state"));
     // Ferma il segnale acustico
     mower.stopBuzzer();
     
-    // Pulisci il display
-    mower.clearLcdDisplay();
-    
-    // Ripristina lo stato di emergenza
+    // Reset emergency state
     mower.resetEmergencyStop();
     
-    // Mostra un messaggio di ripristino
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("RIPRISTINO");
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd("IN CORSO...");
-    
-    // Breve segnale acustico di conferma
+    // Play confirmation sound
     mower.playBuzzerTone(2000, 100);
     delay(100);
     mower.playBuzzerTone(2500, 100);

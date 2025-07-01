@@ -29,14 +29,9 @@ void DockingState::enter(Mower& mower) {
     mower.setLeftMotorSpeed(DOCKING_MOTOR_SPEED);
     mower.setRightMotorSpeed(DOCKING_MOTOR_SPEED);
     
-    // Mostra il messaggio iniziale
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("DOCKING");
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd("Searching dock...");
+    // Display updates are now handled by the LCDMenu class
     
-    // Segnale acustico di inizio aggancio
+    // Play docking start sound
     mower.playBuzzerTone(1500, 200);
     delay(100);
     mower.playBuzzerTone(1000, 200);

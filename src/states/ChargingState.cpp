@@ -37,16 +37,7 @@ void ChargingState::enter(Mower& mower) {
     // Ferma tutti i motori
     mower.stopMotors();
     
-    // Mostra il messaggio sul display
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("Charging...");
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd("Battery: ");
-    int batteryLevel = static_cast<int>(mower.getBatteryLevel());
-    if (batteryLevel < 10) mower.printToLcd(" ");
-    mower.printToLcd(batteryLevel);
-    mower.printToLcd("%");
+    // Display updates are now handled by the LCDMenu class
     
     // Segnale acustico di inizio ricarica
     mower.playBuzzerTone(1000, 200);  // Frequenza 1000Hz per 200ms
@@ -68,7 +59,7 @@ void ChargingState::update(Mower& mower) {
     if (currentTime - lastBatteryCheck_ > BATTERY_UPDATE_INTERVAL) {
         lastBatteryCheck_ = currentTime;
         
-        // Aggiorna il display con il livello della batteria
+        // Battery level check and debug output
         int batteryLevel = static_cast<int>(mower.getBatteryLevel());
         
 #ifdef DEBUG_MODE
@@ -77,20 +68,12 @@ void ChargingState::update(Mower& mower) {
         DEBUG_PRINTLN(F("%"));
 #endif
         
-        mower.setLcdCursor(9, 1);
-        if (batteryLevel < 10) mower.printToLcd(" ");
-        mower.printToLcd(batteryLevel);
-        mower.printToLcd("%   ");
-        
-        // Controlla se la batteria è completamente carica
+        // Check if battery is fully charged
         if (mower.isBatteryFull()) {
             if (!isFullyCharged_) {
                 isFullyCharged_ = true;
                 // Emetti un segnale acustico per indicare la carica completata
                 mower.playBuzzerTone(1500, 300);  // Frequenza 1500Hz per 300ms
-                
-                // Aggiorna il display
-                mower.updateLcdDisplay("Charging Complete!", "Battery: 100%");
                 
 #ifdef DEBUG_MODE
                 DEBUG_PRINTLN(F("CHARGING: Battery fully charged"));
@@ -127,8 +110,7 @@ void ChargingState::exit(Mower& mower) {
 #endif
     }
     
-    // Clear the display
-    mower.updateLcdDisplay("");
+    // Display updates are now handled by the LCDMenu class
 }
 
 void ChargingState::handleEvent(Mower& mower, Event event) {
@@ -141,10 +123,8 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
         case Event::BATTERY_FULL:
             // La batteria è completamente carica
             isFullyCharged_ = true;
-            // Aggiorna il display
-            mower.setLcdCursor(0, 0);
-            mower.printToLcd("Battery Full!    ");
-            // Emetti un segnale acustico
+            // Play sound notification for full battery
+            // Display updates are now handled by the LCDMenu class
             mower.playBuzzerTone(2000, 500);
             break;
             

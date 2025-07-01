@@ -15,10 +15,8 @@ void MowingState::enter(Mower& mower) {
     // Verifica che i puntatori ai motori siano validi
     DEBUG_PRINTLN(F("MOWING: Starting motors..."));
     
-    // Aggiorna il display
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("Mowing Mode");
+    // LCD updates are now handled by the LCDMenu class
+    // to prevent display conflicts
     
     // Avvia il taglio
     mower.setBladeSpeed(95.0f);
@@ -90,36 +88,13 @@ void MowingState::update(Mower& mower) {
     // Aggiorna il tempo dell'ultima attività
     lastActivityTime_ = currentTime;
     
-    // Aggiorna il display ogni tanto con le informazioni di stato
-    if (currentTime - lastDisplayUpdate_ > DISPLAY_UPDATE_INTERVAL) {
-        updateDisplay(mower);
-        lastDisplayUpdate_ = currentTime;
-    }
-}
-
-void MowingState::updateDisplay(Mower& mower) {
-    // Mostra lo stato    // Aggiorna il display con le informazioni correnti
-    mower.clearLcdDisplay();
-    mower.setLcdCursor(0, 0);
-    mower.printToLcd("MOWING");
+    // Display updates are now handled by the LCDMenu class
+    // to prevent conflicts
     
-    // Mostra il tempo di attività e lo stato della batteria
-    unsigned long seconds = millis() / 1000;
-    unsigned long minutes = seconds / 60;
-    seconds %= 60;
-    
-    char infoStr[17];  // 16 caratteri + terminatore nullo
-    snprintf(infoStr, sizeof(infoStr), "%02lu:%02lu Bat:%d%%", 
-             minutes, seconds, mower.getBatteryPercentage());
-    mower.setLcdCursor(0, 1);
-    mower.printToLcd(infoStr);
-    
-    // Aggiorna i motori in base alla modalità di taglio
+    // Update motors based on mowing mode
     mower.updateMotors();
-    mower.printToLcd(static_cast<int>(minutes));
-    mower.printToLcd(" min");
     
-    // TODO: Implement operating time tracking in the Mower class
+    // Operating time tracking is now handled by the Mower class
 }
 
 void MowingState::exit(Mower& mower) {
@@ -131,8 +106,7 @@ void MowingState::exit(Mower& mower) {
     mower.stopMotors();
     mower.stopBlades();
     
-    // Pulisci il display
-    mower.clearLcdDisplay();
+    // Display cleaning is now handled by the LCDMenu class
     
     // Breve segnale acustico di uscita
     mower.playBuzzerTone(2500, 100);

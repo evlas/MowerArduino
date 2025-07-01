@@ -27,10 +27,9 @@ void UndockingState::enter(Mower& mower) {
     mower.setLeftMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
     mower.setRightMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
     
-    // Update display
-    mower.updateLcdDisplay("Undocking...", "Backing up...");
+    // Display updates are now handled by the LCDMenu class
     
-    // Segnale acustico di inizio undocking
+    // Play undocking start sound
     mower.playBuzzerTone(1000, 200);  // 1000Hz for 200ms
     delay(100);
     mower.playBuzzerTone(1500, 200);  // 1500Hz for 200ms
@@ -64,14 +63,7 @@ void UndockingState::update(Mower& mower) {
         mower.setLeftMotorSpeed(DEFAULT_MOTOR_SPEED * 0.6f);
         mower.setRightMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.6f);
         
-        // Aggiorna il display
-        mower.clearLcdDisplay();
-        mower.setLcdCursor(0, 0);
-        mower.printToLcd("Undocking...");
-        mower.setLcdCursor(0, 1);
-        mower.printToLcd("Turning...     ");
-        
-        // Aggiorna il tempo di inizio della rotazione
+        // Update rotation start time
         undockingStartTime_ = currentTime;
         
 #ifdef DEBUG_MODE
@@ -83,11 +75,7 @@ void UndockingState::update(Mower& mower) {
         // Ferma i motori
         mower.stopDriveMotors();
         
-        // Aggiorna il display
-        mower.setLcdCursor(0, 1);
-        mower.printToLcd("Complete!      ");
-        
-        // Piccola pausa per mostrare il messaggio
+        // Short pause before completing
         delay(500);
         
         // Segnala che l'undocking è completato

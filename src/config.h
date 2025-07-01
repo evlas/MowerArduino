@@ -80,7 +80,7 @@
 // SICUREZZA
 // ========================
 // Configurazione pulsanti
-#define BUTTON_DEBOUNCE 50  // [ms] Tempo di debounce per tutti i pulsanti
+#define BUTTON_DEBOUNCE 200  // [ms] Tempo di debounce per tutti i pulsanti
 
 // Soglie di sicurezza
 #define TILT_THRESHOLD 30.0f        // [°] Soglia di inclinazione massima

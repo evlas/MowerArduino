@@ -41,10 +41,6 @@ Mower::Mower(LCDMenu* lcdMenu) :
     // Inizializza il puntatore a LCDMenu
     lcdMenu(lcdMenu)
 {
-    DEBUG_PRINTLN("Costruttore Mower chiamato");
-    DEBUG_PRINT("LCD Menu: ");
-    DEBUG_PRINTLN(lcdMenu ? "presente" : "assente");
-    
     // Inizializza i relè
     motorRelay.begin(RELAY_MOTORS_PIN);
     chargingRelay.begin(RELAY_CHARGING_PIN);
@@ -62,16 +58,13 @@ void Mower::begin() {
     // Initialize serial communication for debug if enabled
     DEBUG_PRINTLN("Debug serial initialized");
     
-    // Il display LCD è gestito dalla classe LCDMenu
-    if (lcdMenu) {
-        lcdMenu->begin();
-    }
-
-    // Inizializza il sensore di batteria
-    if (batterySensor.begin()) {
-        DEBUG_PRINTLN("BatterySensor: INA226 init successful");
-    } else {
-        DEBUG_PRINTLN("BatterySensor: INA226 init failed!");
+    // Non inizializzare nuovamente l'LCD qui, viene già fatto in setup()
+    // L'oggetto lcdMenu viene passato al costruttore di Mower
+    
+    // Inizializza il sensore di batteria solo se non è già stato fatto
+    static bool batterySensorInitialized = false;
+    if (!batterySensorInitialized) {
+        batterySensorInitialized = batterySensor.begin();
     }
     
     // Inizializza i sensori di urto
@@ -203,7 +196,7 @@ void Mower::setBladeSpeed(float speed) {
         DEBUG_PRINT("[DEBUG] setBladeSpeed: old=");
         DEBUG_PRINT(oldSpeed);
         DEBUG_PRINT("%, new=");
-        DEBUG_PRINT(bladeSpeed_ * 100);
+        DEBUG_PRINT(bladeSpeed_);  // Remove the *100 since it's already a percentage
         DEBUG_PRINT("%, bladesRunning_=");
         DEBUG_PRINTLN(bladesRunning_ ? "true" : "false");
     #endif
