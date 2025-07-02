@@ -15,7 +15,8 @@
 
 // ---------------------------------------------------------------------------
 // Costruttore unificato con parametro opzionale
-Mower::Mower(LCDMenu* lcdMenu) : 
+Mower::Mower(LCDMenu* lcdMenu) :
+    randomNavigator_(*this), lawnNavigator_(*this), 
     currentState_(nullptr),
     emergencyStopActive_(false), 
     bladesRunning_(false), 
@@ -369,7 +370,8 @@ void Mower::updateSensors() {
     }
     
     if (batteryCritical_ && !wasBatteryCritical) {
-        handleEvent(Event::BATTERY_CRITICAL);
+        // Genera direttamente l'evento di emergency stop
+        handleEvent(Event::EMERGENCY_STOP);
     }
     
     if (batteryFull_ && !wasBatteryFull) {
@@ -819,6 +821,16 @@ bool Mower::isErrorResolved() const {
 
 // Controllo motori
 void Mower::updateMotors() {
+    // Gestione navigazione RANDOM e LAWN_MOWER
+    if (navigationMode_ == NavigationMode::RANDOM) {
+        randomNavigator_.update();
+        return;
+    }
+    if (navigationMode_ == NavigationMode::LAWN_MOWER) {
+        lawnNavigator_.update();
+        return;
+    }
+
     // Aggiorna i motori in base alle velocità impostate
     if (emergencyStopActive_) {
         // In caso di emergenza, ferma tutti i motori
@@ -934,13 +946,26 @@ void Mower::playBuzzerTone(unsigned int frequency, unsigned long duration) {
 
 // Imposta la modalità di navigazione
 void Mower::setNavigationMode(NavigationMode mode) {
-    if (navigationMode_ != mode) {
-        navigationMode_ = mode;
-        #ifdef DEBUG
-        DEBUG_PRINT(F("Navigation mode set to: "));
-        DEBUG_PRINTLN(navigationModeToString(mode));
-        #endif
+    if (navigationMode_ == mode) {
+        return; // già impostata
     }
+
+    switch (mode) {
+        case NavigationMode::RANDOM:
+            randomNavigator_.begin();
+            break;
+        case NavigationMode::LAWN_MOWER:
+            lawnNavigator_.begin();
+            break;
+        default:
+            break;
+    }
+
+    navigationMode_ = mode;
+    #ifdef DEBUG
+    DEBUG_PRINT(F("Navigation mode set to: "));
+    DEBUG_PRINTLN(navigationModeToString(mode));
+    #endif
 }
 
 // Abilita o disabilita la ricarica

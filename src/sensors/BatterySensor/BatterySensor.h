@@ -87,8 +87,9 @@ public:
      * implementing additional filtering or processing if needed.
      */
     void update() {
-        // The INA226 sensor updates automatically
-        // Additional filtering logic can be added here if needed
+        // Effettua una lettura rapida per mantenere aggiornati i filtri
+        readVoltage();
+        readCurrent();
     }
     
     // ===== Status Methods =====

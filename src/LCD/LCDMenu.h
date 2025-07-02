@@ -76,6 +76,16 @@ public:
     void print(float number) { lcd.print(number); }
     void print(char c) { lcd.print(c); }
     void backlight() { lcd.backlight(); }
+    
+    /**
+     * @brief Force backlight on and set internal flag
+     */
+    void refreshStatus() { updateStatusDisplay(); }
+    
+    void forceBacklightOn() {
+        lcd.backlight();
+        backlightOn = true;
+    }
     void noBacklight() { lcd.noBacklight(); }
     void display() { lcd.display(); }
     void noDisplay() { lcd.noDisplay(); }

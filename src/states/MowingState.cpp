@@ -22,7 +22,11 @@ void MowingState::enter(Mower& mower) {
     mower.setBladeSpeed(95.0f);
     mower.startBlades();
     mower.startDriveMotors();
+    #ifdef GPS_ENABLED
+    mower.setNavigationMode(Mower::NavigationMode::LAWN_MOWER); // Linee parallele
+    #else
     mower.setNavigationMode(Mower::NavigationMode::RANDOM);
+    #endif
     
     // Segnale acustico di inizio taglio
     mower.playBuzzerTone(2000, 100);

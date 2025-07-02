@@ -137,8 +137,9 @@ void LCDMenu::update() {
     
     // Aggiornamento periodico del display (ogni 500ms)
     if (backlightOn && (currentTime - lastDisplayUpdate >= 500)) {
-        // Se siamo in STATUS_DISPLAY, aggiorna sempre lo stato
-        if (currentState == STATUS_DISPLAY) {
+        // Aggiorna sempre lo stato se siamo in STATUS_DISPLAY
+        // oppure se il mower è in EMERGENCY_STOP (così il display si aggiorna anche in menu)
+        if (currentState == STATUS_DISPLAY || (mowerPtr && mowerPtr->getState() == State::EMERGENCY_STOP)) {
             updateStatusDisplay();
         } else {
             // Se siamo in un menu, aggiorna solo se c'è stato un cambiamento di stato
@@ -163,6 +164,14 @@ void LCDMenu::handleButtonPress(uint8_t button) {
     
     // Aggiorna il timestamp dell'ultima attività
     lastUserActivity = millis();
+    
+    // Se il mower è in stato di emergenza, permetti di resettare con START o STOP
+    if (mowerPtr && mowerPtr->getState() == State::EMERGENCY_STOP) {
+        if (button == START_BUTTON_PIN || button == STOP_BUTTON_PIN) {
+            mowerPtr->handleEvent(Event::RESET);
+            return; // Non processare oltre
+        }
+    }
     
     switch (currentState) {
         case MAIN_MENU:
@@ -208,6 +217,7 @@ const char* LCDMenu::getStateName(MenuState state) {
 }
 
 void LCDMenu::updateDisplay() {
+    lastUserActivity = millis();  // Aggiorna l'ultima attività anche quando il display viene aggiornato
     unsigned long currentTime = millis();
     
     // Limita l'aggiornamento per evitare sfarfallio
@@ -393,6 +403,9 @@ void LCDMenu::updateStatusDisplay() {
         }
         
         lcd.print(stateStr);
+        // Pulisci eventuali caratteri residui sulla riga
+        int len = strlen(stateStr);
+        for (int i = len; i < 16; i++) lcd.print(' ');
         
         // Seconda riga: livello batteria
         lcd.setCursor(0, 1);

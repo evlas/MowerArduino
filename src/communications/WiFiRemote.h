@@ -5,6 +5,11 @@
 #include <Arduino.h>
 #include "../config.h"  // SERIAL_WIFI is defined here
 #include <ArduinoJson.h>  // Per la gestione del JSON
+#include "../sensors/BatterySensor/BatterySensor.h"
+#include "../sensors/IMUModule/IMUModule.h"
+#include "../sensors/GPSModule/GPSModule.h"
+#include "../sensors/UltrasonicSensors/UltrasonicSensors.h"
+#include "../sensors/RainSensor/RainSensor.h"
 
 // Note: SERIAL_WIFI should be defined in config.h
 
@@ -16,20 +21,68 @@
 
 // Message types
 enum class MessageType : uint8_t {
-    CMD_MOVE = 0x01,
-    CMD_ROTATE = 0x02,
-    CMD_MOW = 0x03,
-    CMD_DOCK = 0x04,
-    CMD_EMERGENCY = 0x05,
-    CMD_SET_SPEED = 0x06,
-    CMD_SET_BLADE_SPEED = 0x07,
-    CMD_SET_NAV_MODE = 0x08,
-    CMD_CUSTOM = 0x09,
-    RSP_STATUS = 0x81,
-    RSP_ACK = 0x82,
-    RSP_ERROR = 0x83,
-    RSP_LOG = 0x84
+    // Comandi dal client al robot
+    CMD_MOVE = 0x01,           // Comando di movimento
+    CMD_ROTATE = 0x02,         // Comando di rotazione
+    CMD_MOW = 0x03,            // Controllo lama
+    CMD_DOCK = 0x04,           // Torna alla base
+    CMD_EMERGENCY = 0x05,      // Arresto di emergenza
+    CMD_SET_SPEED = 0x06,      // Imposta velocità
+    CMD_SET_BLADE_SPEED = 0x07,// Imposta velocità lama
+    CMD_SET_NAV_MODE = 0x08,   // Imposta modalità navigazione
+    CMD_CUSTOM = 0x09,         // Comando personalizzato
+    
+    // Risposte dal robot al client
+    RSP_STATUS = 0x81,         // Stato completo del robot
+    RSP_ACK = 0x82,            // Conferma comando
+    RSP_ERROR = 0x83,          // Errore
+    RSP_LOG = 0x84,            // Messaggio di log
+    RSP_SENSOR_DATA = 0x85     // Dati dei sensori
 };
+
+// Tipi di comando per il controllo manuale
+enum class CommandType : uint8_t {
+    NONE = 0,
+    MANUAL_CONTROL,     // Controllo manuale (usa speed e turn)
+    START_MOWING,       // Inizia il taglio
+    STOP_MOWING,        // Ferma il taglio
+    DOCK,               // Torna alla base
+    PAUSE,              // Metti in pausa
+    RESUME              // Riprendi
+};
+
+// Strutture dati per la comunicazione binaria
+#pragma pack(push, 1)
+
+// Pacchetto di stato (inviato dal robot)
+typedef struct {
+    uint16_t batteryVoltage;    // mV
+    int16_t batteryCurrent;     // mA
+    uint8_t batteryPercent;     // 0-100%
+    uint8_t bumpers;            // Bitmask dei bumper (bit 0: frontale, bit 1: posteriore, ecc.)
+    uint8_t rainDetected;       // 0-100% di umidità rilevata
+    uint8_t ultrasonicDist;     // Distanza in cm (0-255 cm)
+    int16_t imuAccelX;          // Accelerazione X (m/s² * 100)
+    int16_t imuAccelY;          // Accelerazione Y (m/s² * 100)
+    int16_t imuAccelZ;          // Accelerazione Z (m/s² * 100)
+    int16_t imuGyroX;           // Giroscopio X (gradi/s * 100)
+    int16_t imuGyroY;           // Giroscopio Y (gradi/s * 100)
+    int16_t imuGyroZ;           // Giroscopio Z (gradi/s * 100)
+    int32_t gpsLat;             // Latitudine * 1e7
+    int32_t gpsLon;             // Longitudine * 1e7
+    uint8_t gpsSats;            // Numero di satelliti
+    uint8_t statusFlags;        // Bitmask di stato
+} StatusPacket;
+
+// Pacchetto di comando (ricevuto dal robot)
+typedef struct {
+    uint8_t command;            // Tipo di comando (CommandType)
+    int8_t speed;               // Velocità (-100 a 100)
+    int8_t turn;                // Sterzata (-100 a 100)
+    uint8_t flags;              // Bitmask di opzioni
+} CommandPacket;
+
+#pragma pack(pop)
 
 // Navigation modes (matching RemoteCommand.h)
 enum class NavMode : uint8_t {
@@ -71,7 +124,7 @@ typedef struct {
  */
 class WiFiRemote {
 public:
-    explicit WiFiRemote(RemoteCommand& remote);
+    explicit WiFiRemote(RemoteCommand& remote, Mower& mower);
     
     /**
      * @brief Inizializza la comunicazione seriale
@@ -109,8 +162,9 @@ public:
     bool isConnected() const { return connected_; }
     
 private:
-    // Riferimento al gestore dei comandi remoti
+    // Riferimento al gestore dei comandi remoti e al mower
     RemoteCommand& remote_;
+    Mower& mower_;
     
     // Stato della connessione
     bool connected_;
@@ -132,6 +186,9 @@ private:
     void sendError(uint8_t errorCode);
     bool sendPacket(MessageType type, const void* data = nullptr, uint16_t length = 0);
     uint16_t calculateCRC16(const uint8_t* data, uint16_t length);
+    
+    // Invia lo stato completo del robot
+    void sendRobotStatus();
     
     // Metodi per la gestione delle risposte JSON
     void sendJsonResponse(JsonDocument& json);

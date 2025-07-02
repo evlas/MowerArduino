@@ -10,6 +10,11 @@ const unsigned long EMERGENCY_BEEP_INTERVAL = 2000;
 void EmergencyStopState::enter(Mower& mower) {
 DEBUG_PRINTLN(F("EMERGENCY: Entering state"));
     
+    // Accendi retroilluminazione e mostra subito lo stato di emergenza
+    if (mower.lcdMenu) {
+        mower.lcdMenu->forceBacklightOn();
+        mower.lcdMenu->refreshStatus();
+    }
     // Azioni di emergenza: ferma tutto
     mower.emergencyStop();
     

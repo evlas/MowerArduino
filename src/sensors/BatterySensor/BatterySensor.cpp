@@ -50,16 +50,25 @@ bool BatterySensor::begin() {
 }
 
 float BatterySensor::readVoltage() {
-//    voltageFiltered = ina226.getBusVoltage_V();
-    voltageFiltered = BATTERY_VOLTAGE_MAX;
+    // Leggi la tensione dal sensore; se la lettura fallisce restituisce NAN
+    float v = ina226.getBusVoltage_V();
+    if (!isnan(v) && v > 0.01f) {
+        voltageFiltered = v;
+        lastUpdate = millis();
+    }
     return voltageFiltered;
 }
 
-float BatterySensor::readCurrent() {    
-//    currentFiltered = ina226.getCurrent_mA();
-    currentFiltered = 1000.0;
+
+float BatterySensor::readCurrent() {
+    float i = ina226.getCurrent_mA();
+    if (!isnan(i)) {
+        currentFiltered = i;
+        lastUpdate = millis();
+    }
     return currentFiltered;
-}
+}    
+
 
 float BatterySensor::readPower() {
     // Calculate power in watts: P = V * I
@@ -73,7 +82,7 @@ float BatterySensor::getBatteryPercentage() {
     // Simple linear estimation (you might want to implement a more accurate curve)
     percentage = ((voltageFiltered - BATTERY_VOLTAGE_MIN) / (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN)) * 100.0f;
     
-    percentage = 100.0f;
+    //percentage = 100.0f;
 
     // Clamp to 0-100%
     return constrain(percentage, 0.0f, 100.0f);

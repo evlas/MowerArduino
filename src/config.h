@@ -250,7 +250,7 @@
 #define BATTERY_VOLTAGE_DIVIDER_RATIO BATTERY_VOLTAGE_DIVIDER  // Alias per compatibilità
 
 // Configurazione batteria LiPo
-#define BATTERY_CELLS          6
+#define BATTERY_CELLS          3
 #define BATTERY_CAPACITY       5.0f  // Ampere-ora
 
 // Parametri di tensione (per cella)
@@ -268,8 +268,8 @@
 
 #define BATTERY_CHARGED_THRESHOLD 90.0f  // Soglia di batteria carica (%)
 #define BATTERY_FULL_THRESHOLD 95.0f     // Soglia di batteria piena (%)
-#define BATTERY_LOW_THRESHOLD 30.0f      // Soglia di batteria scarica (%)
-#define BATTERY_CRITICAL_THRESHOLD 20 // Soglia di batteria critica (20%)
+#define BATTERY_LOW_THRESHOLD 10.0f      // Soglia di batteria scarica (avviso) %
+#define BATTERY_CRITICAL_THRESHOLD 5.0f   // Soglia di batteria critica (%)
 
 
 // --- TIMING MOVIMENTI ---

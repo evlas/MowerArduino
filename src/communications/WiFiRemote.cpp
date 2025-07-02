@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "../config.h"  // SERIAL_WIFI is defined here
+#include "../functions/Mower.h"
 
 // Default baud rate for WiFi module if not defined in config.h
 #ifndef SERIAL_WIFI_BAUD
@@ -11,8 +12,9 @@
 // CRC-16-CCITT polynomial: x^16 + x^12 + x^5 + 1 (0x1021)
 #define CRC16_POLY 0x1021
 
-WiFiRemote::WiFiRemote(RemoteCommand& remote)
+WiFiRemote::WiFiRemote(RemoteCommand& remote, Mower& mower)
     : remote_(remote),
+      mower_(mower),
       connected_(false),
       lastStatusTime_(0),
       lastCommandTime_(0),
@@ -40,12 +42,21 @@ void WiFiRemote::begin(unsigned long baudRate) {
 }
 
 void WiFiRemote::update() {
+    static unsigned long lastSensorUpdate = 0;
+    unsigned long currentTime = millis();
+    
+    // Elabora i dati in arrivo
     processIncomingData();
     
-    // Invia aggiornamento di stato periodico
-    unsigned long currentTime = millis();
+    // Invia aggiornamento di stato periodico (ogni 100ms per i dati dei sensori)
+    if (currentTime - lastSensorUpdate >= 100) {
+        sendRobotStatus();
+        lastSensorUpdate = currentTime;
+    }
+    
+    // Invia stato JSON meno frequentemente (ogni 1s)
     if (currentTime - lastStatusTime_ >= STATUS_UPDATE_INTERVAL) {
-        sendStatus(false); // Invia solo se ci sono cambiamenti
+        sendStatus(false);
         lastStatusTime_ = currentTime;
     }
     
@@ -95,6 +106,62 @@ void WiFiRemote::processIncomingData() {
  * @param data Puntatore ai dati del pacchetto
  * @param length Lunghezza totale del pacchetto (inclusi header e terminatore)
  */
+void WiFiRemote::sendRobotStatus() {
+    if (!connected_) return;
+    
+    StatusPacket status;
+    
+    // Leggi i dati della batteria
+    status.batteryVoltage = mower_.getBatteryVoltage() * 100;  // Converti in centesimi di Volt
+    status.batteryCurrent = mower_.getBatteryCurrent();        // Già in mA, nessuna conversione necessaria
+    status.batteryPercent = mower_.getBatteryPercentage();
+    
+    // Leggi i dati IMU
+    IMUData imuData = mower_.getIMUData();
+    
+    // Converti i dati IMU nei formati richiesti
+    status.imuAccelX = imuData.accelX * 0.001f;  // Converti in m/s²
+    status.imuAccelY = imuData.accelY * 0.001f;
+    status.imuAccelZ = imuData.accelZ * 0.001f;
+    status.imuGyroX = imuData.gyroX * 0.0174533f;  // Converti in rad/s
+    status.imuGyroY = imuData.gyroY * 0.0174533f;
+    status.imuGyroZ = imuData.gyroZ * 0.0174533f;
+    
+    // Leggi i dati GPS
+    status.gpsLat = mower_.getLatitude() * 1e7;  // Converti in gradi * 10^7
+    status.gpsLon = mower_.getLongitude() * 1e7;
+    status.gpsSats = mower_.getSatellites();
+    
+    // Leggi i dati dei sensori a ultrasuoni
+    float distances[3];
+    if (mower_.getUltrasonicDistances(distances, 3) > 0) {
+        // Trova la distanza minima tra i sensori
+        float minDistance = distances[0];
+        for (int i = 1; i < 3; i++) {
+            if (distances[i] < minDistance) {
+                minDistance = distances[i];
+            }
+        }
+        status.ultrasonicDist = minDistance;
+    } else {
+        // Se non riusciamo a leggere le distanze, usiamo isObstacleDetected
+        status.ultrasonicDist = mower_.isObstacleDetected() ? 50 : 255;
+    }
+    
+    // Dati pioggia
+    status.rainDetected = mower_.isRaining() ? 100 : 0;
+    
+    // Imposta i flag di stato
+    status.statusFlags = 0;
+    if (remote_.isRemoteControlEnabled()) status.statusFlags |= 0x01;
+    // Esempio di verifica dello stato del tosaerba
+    // Sostituisci con il metodo corretto della tua classe Mower
+    status.statusFlags |= 0x02;  // Rimuovi o modifica questa riga in base alle tue esigenze
+    
+    // Invia il pacchetto
+    sendPacket(MessageType::RSP_SENSOR_DATA, &status, sizeof(StatusPacket));
+}
+
 void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
     // Verifica la lunghezza minima e i marker di inizio/fine
     if (length < HEADER_SIZE || data[0] != PROTOCOL_START_MARKER || data[length-1] != PROTOCOL_END_MARKER) {
@@ -108,7 +175,58 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         return;
     }
     
-    // Estrai i campi dell'header
+    // Se è un pacchetto di comando binario
+    if (length >= sizeof(CommandPacket) && data[1] < 0x80) {
+        CommandPacket* cmd = (CommandPacket*)data;
+        
+        switch (static_cast<CommandType>(cmd->command)) {
+            case CommandType::MANUAL_CONTROL: {
+                remote_.setRemoteControlEnabled(true);
+                float speed = map(cmd->speed, -100, 100, -255, 255) / 255.0f;  // Converti da -100..100 a -1.0..1.0
+                float turn = map(cmd->turn, -100, 100, -255, 255) / 255.0f;    // Converti da -100..100 a -1.0..1.0
+                
+                // Calcola le velocità per i due motori
+                float leftSpeed = speed + turn;
+                float rightSpeed = speed - turn;
+                
+                // Usa il metodo setManualControl della classe Mower
+                mower_.setManualControl(leftSpeed, rightSpeed);
+                
+                // Invia conferma
+                sendAck(MessageType::CMD_MOVE);
+                break;
+            }
+                
+            case CommandType::START_MOWING:
+                remote_.processCommand(RemoteCommandType::START_MOWING);
+                break;
+                
+            case CommandType::STOP_MOWING:
+                remote_.processCommand(RemoteCommandType::STOP_MOWING);
+                break;
+                
+            case CommandType::DOCK:
+                remote_.processCommand(RemoteCommandType::DOCK);
+                break;
+                
+            case CommandType::PAUSE:
+                remote_.processCommand(RemoteCommandType::PAUSE_MOWING);
+                break;
+                
+            case CommandType::RESUME:
+                remote_.processCommand(RemoteCommandType::RESUME_MOWING);
+                break;
+                
+            default:
+                sendError(0x01); // Comando sconosciuto
+                return;
+        }
+        
+        sendAck(static_cast<MessageType>(data[1]));
+        return;
+    }
+    
+    // Altrimenti gestisci i pacchetti esistenti
     MessageType type = static_cast<MessageType>(data[1]);
     uint16_t payloadLength = (static_cast<uint16_t>(data[2]) << 8) | data[3];
     uint16_t receivedCrc = (static_cast<uint16_t>(data[4]) << 8) | data[5];

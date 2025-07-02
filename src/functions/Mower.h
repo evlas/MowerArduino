@@ -25,6 +25,9 @@ class LCDMenu;
  * @brief State and event type definitions for the mower state machine.
  */
 #include "MowerTypes.h"
+#include "PositionManager.h"
+#include "../navigation/RandomNavigator.h"
+#include "../navigation/LawnMowerNavigator.h"
 
 
 // Forward declarations to resolve circular dependencies
@@ -73,6 +76,8 @@ class RosControlState;
  * - Managing navigation and mowing patterns
  */
 class Mower {
+    friend class RandomNavigator;
+    friend class LawnMowerNavigator;
     // Dichiarazioni friend per le classi stato
     friend class IdleState;
     friend class MowingState;
@@ -198,6 +203,97 @@ public:
      * @return true if an obstacle is detected, false otherwise
      */
     bool isObstacleDetected() const { return ultrasonicSensors.isObstacleDetected(); }
+    
+    /**
+     * @brief Get the battery voltage in volts
+     * @return Battery voltage in volts
+     */
+    float getBatteryVoltage() const { return batterySensor.getVoltage(); }
+    
+    /**
+     * @brief Get the battery current in amperes
+     * @return Battery current in amperes (positive for discharge, negative for charge)
+     */
+    float getBatteryCurrent() const { return batterySensor.getCurrent(); }
+    
+    /**
+     * @brief Get the IMU data
+     * @return IMUData structure containing accelerometer and gyroscope data
+     */
+    IMUData getIMUData() const { return imu.getData(); }
+    
+    /**
+     * @brief Get the current latitude
+     * @return Latitude in degrees, or 0 if GPS is not available
+     */
+    float getLatitude() const { 
+#ifdef ENABLE_GPS
+        return gps.getLatitude(); 
+#else
+        return 0.0f;
+#endif
+    }
+    
+    /**
+     * @brief Get the current longitude
+     * @return Longitude in degrees, or 0 if GPS is not available
+     */
+    float getLongitude() const { 
+#ifdef ENABLE_GPS
+        return gps.getLongitude(); 
+#else
+        return 0.0f;
+#endif
+    }
+    
+    /**
+     * @brief Get the number of visible GPS satellites
+     * @return Number of visible satellites, or 0 if GPS is not available
+     */
+    uint8_t getSatellites() const { 
+#ifdef ENABLE_GPS
+        return gps.getSatellites(); 
+#else
+        return 0;
+#endif
+    }
+    
+    /**
+     * @brief Get the ultrasonic sensor distances
+     * @param distances Array of floats to store the distances (in cm)
+     * @param maxDistances Maximum number of distances to retrieve
+     * @return Number of distances retrieved
+     */
+    uint8_t getUltrasonicDistances(float* distances, uint8_t maxDistances) const { 
+        if (maxDistances >= 3) {
+            // Assumendo che UltrasonicSensors abbia un metodo per ottenere le distanze
+            ultrasonicSensors.getAllDistances(distances[0], distances[1], distances[2]);
+            return 3;
+        }
+        return 0;
+    }
+    
+    /**
+     * @brief Set manual control for the mower
+     * @param leftSpeed Speed for the left motor (-1.0 to 1.0)
+     * @param rightSpeed Speed for the right motor (-1.0 to 1.0)
+     */
+    void setManualControl(float leftSpeed, float rightSpeed) {
+        // Assicurati che le velocità siano nel range corretto
+        leftSpeed = constrain(leftSpeed, -1.0f, 1.0f);
+        rightSpeed = constrain(rightSpeed, -1.0f, 1.0f);
+        
+        // Imposta le velocità dei motori utilizzando i metodi esistenti
+        setLeftMotorSpeed(leftSpeed);
+        setRightMotorSpeed(rightSpeed);
+        
+        // Se necessario, avvia i motori
+        if (leftSpeed != 0.0f || rightSpeed != 0.0f) {
+            startDriveMotors();
+        } else {
+            stopDriveMotors();
+        }
+    }
     
     /**
      * @brief Check if the mower is aligned with the charging dock
@@ -715,7 +811,9 @@ private:
     float bladeSpeed_;              ///< Current blade speed (0.0 to 1.0)
     bool charging_;                 ///< Flag indicating if charging is active
     float batteryLevel_;             ///< Current battery level (0.0 to 100.0)
-    NavigationMode navigationMode_;  ///< Current navigation mode
+    NavigationMode navigationMode_;
+    RandomNavigator randomNavigator_;
+    LawnMowerNavigator lawnNavigator_;
     unsigned long lastSensorUpdate_;  ///< Timestamp of last sensor update (ms)
     
     // Sensor states

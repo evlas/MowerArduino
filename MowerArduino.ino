@@ -30,8 +30,8 @@
 // Include system classes
 #include "src/LCD/LCDMenu.h"
 #include "src/functions/Mower.h"
-//#include "src/communications/RemoteCommand.h"
-//#include "src/communications/WiFiRemote.h"
+#include "src/communications/RemoteCommand.h"
+#include "src/communications/WiFiRemote.h"
 
 // Create global LCDMenu instance
 LCDMenu lcdMenu;
@@ -40,20 +40,14 @@ LCDMenu lcdMenu;
 Mower mower(&lcdMenu);  // Passa il puntatore all'istanza LCDMenu
 
 // Create remote command instance
-//RemoteCommand remoteCmd(mower);
+RemoteCommand remoteCmd(mower);
 
 // Create WiFi remote instance
-//WiFiRemote wifiRemote(remoteCmd);
+WiFiRemote wifiRemote(remoteCmd, mower);
 
 void setup() {
     // Inizializzazione seriale di debug
     #ifdef DEBUG_MODE
-    // Chiudi la seriale se già aperta
-    #if defined(__AVR__) || defined(ESP8266) || defined(ESP32)
-        SERIAL_DEBUG.end();
-        delay(50);
-    #endif
-    
     // Inizializza la seriale di debug
     SERIAL_DEBUG.begin(SERIAL_DEBUG_BAUD);
     
@@ -89,6 +83,9 @@ void setup() {
     
     // Poi inizializza il sistema mower
     mower.begin();
+
+    // Inizializza la comunicazione WiFi
+    wifiRemote.begin(SERIAL_WIFI_BAUD);
     
     DEBUG_PRINTLN("Sistema inizializzato");
     DEBUG_PRINT("Stato iniziale: ");
@@ -105,12 +102,12 @@ void loop() {
     // Update the mower (this will handle state updates, sensors, etc.)
     mower.update();
     
-    /*    
-    // Aggiorna il controllo remoto
-    remoteCmd.update();
-    // Gestisci la comunicazione WiFi
+    // Aggiorna il menu LCD (stato e interazione pulsanti)
+    lcdMenu.update();
+
+    // Aggiorna il controllo remoto WiFi
     wifiRemote.update();
-    */    
+        
     // Add a small delay to prevent watchdog resets
     delay(10);
 }
