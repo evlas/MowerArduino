@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MowerArduino - State Machine Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .description {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .mermaid {
+            margin: 20px 0;
+        }
+        .state-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .state-title {
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fffde7;
+            border-left: 4px solid #ffd600;
+        }
+        .state-details {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .state-header {
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MowerArduino - State Machine Documentation</h1>
+        
+        <div class="description">
+            <p>This documentation describes the state machine implementation of the MowerArduino project, including all states, transitions, and their interactions.</p>
+            <p><strong>Last Updated:</strong> July 4, 2025 - Added daily work time limit and improved docking alignment logic</p>
+        </div>
+
+        <div class="state-section">
+            <h2 class="state-title">Complete State Diagram</h2>
+            <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> IdleState
+                    IdleState --> MowingState: START_MOWING
+                    IdleState --> ManualControlState: MANUAL_CONTROL
+                    IdleState --> ErrorState: ERROR
+                    
+                    MowingState --> DockingState: BATTERY_LOW or DAILY_WORK_LIMIT_REACHED
+                    MowingState --> EmergencyStopState: EMERGENCY_STOP
+                    MowingState --> IdleState: STOP_MOWING
+                    MowingState --> LiftedState: LIFT_DETECTED
+                    MowingState --> ErrorState: ERROR
+                    MowingState --> DockingState: START_DOCKING
+                    
+                    DockingState --> ChargingState: DOCK_DETECTED
+                    DockingState --> EmergencyStopState: EMERGENCY_STOP
+                    DockingState --> ErrorState: ERROR
+                    
+                    ChargingState --> IdleState: BATTERY_CHARGED
+                    ChargingState --> MowingState: START_MOWING
+                    ChargingState --> EmergencyStopState: EMERGENCY_STOP
+                    
+                    EmergencyStopState --> IdleState: RESET
+                    
+                    LiftedState --> IdleState: PLACED_DOWN
+                    LiftedState --> MowingState: START_MOWING
+                    
+                    ManualControlState --> IdleState: STOP_MANUAL
+                    ManualControlState --> EmergencyStopState: EMERGENCY_STOP
+                    
+                    ErrorState --> IdleState: RESET
+                    
+                    state DockingState {
+                        [*] --> InitialApproach
+                        InitialApproach --> SensorBasedApproach: DOCK_NOT_DETECTED
+                        InitialApproach --> Alignment: DOCK_DETECTED
+                        SensorBasedApproach --> Alignment: SENSORS_ALIGNED
+                        Alignment --> FinalApproach: ALIGNED
+                        FinalApproach --> Docked: DOCKED
+                    }
+            </div>
+        </div>
+
+        <div class="state-section">
+            <h2 class="state-title">State Details</h2>
+            
+            <div class="state-details">
+                <div class="state-header">IdleState</div>
+                <p>Initial state when the mower is powered on. Waits for user input to start mowing or manual control.</p>
+                <p><strong>Key Methods:</strong> enter(), update(), exit()</p>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">MowingState</div>
+                <p>Active mowing state. Controls the mower's movement and blade operation. Includes daily work time tracking (8-hour limit).</p>
+                <p><strong>New Features:</strong></p>
+                <ul>
+                    <li>Tracks daily working time (resets at midnight)</li>
+                    <li>Automatically returns to dock after 8 hours of operation</li>
+                    <li>Maintains work time across charging cycles</li>
+                </ul>
+                <div class="mermaid">
+                    flowchart TD
+                        A[Start Mowing] --> B[Start Blades]
+                        B --> C[Start Navigation]
+                        C --> D{Check Conditions}
+                        D -->|Battery Low| E[Start Docking]
+                        D -->|Obstacle| F[Handle Obstacle]
+                        D -->|Border| G[Handle Border]
+                        D -->|Lifted| H[Transition to Lifted]
+                        D -->|OK| I[Continue Mowing]
+                        I --> D
+                </div>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">DockingState</div>
+                <p>Manages the automatic docking process when battery is low or daily work limit is reached.</p>
+                <p><strong>Improved Alignment:</strong> Uses front ultrasonic sensors for precise docking alignment.</p>
+                <div class="mermaid">
+                    sequenceDiagram
+                        participant M as Mower
+                        participant D as DockingState
+                        
+                        M->>D: startDocking()
+                        D->>M: Enable bumper sensors
+                        D->>M: Start approach pattern
+                        
+                        loop Docking Process
+                            D->>M: Check sensors
+                            M-->>D: IR, bumper, odometry data
+                            D->>D: Calculate trajectory
+                            D->>M: Update motor speeds
+                        end
+                        
+                        D->>ChargingState: DOCK_DETECTED
+                </div>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">ChargingState</div>
+                <p>Manages the charging process when docked.</p>
+                <p><strong>Behaviors:</strong></p>
+                <ul>
+                    <li>Monitors battery level</li>
+                    <li>Manages charging current</li>
+                    <li>Handles charging completion</li>
+                </ul>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">EmergencyStopState</div>
+                <p>Immediate stop of all operations in case of critical errors.</p>
+                <p><strong>Triggers:</strong> Emergency stop button, critical errors, safety violations</p>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">LiftedState</div>
+                <p>Activated when the mower is lifted off the ground.</p>
+                <p><strong>Behaviors:</strong> Stops blades, disables motors, waits to be placed down</p>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">ManualControlState</div>
+                <p>Allows manual control of the mower via remote.</p>
+                <p><strong>Features:</strong> Remote control, speed adjustment, blade control</p>
+            </div>
+            
+            <div class="state-details">
+                <div class="state-header">ErrorState</div>
+                <p>Handles non-critical errors and warnings.</p>
+                <p><strong>Features:</strong> Error logging, recovery procedures, user notifications</p>
+            </div>
+        </div>
+
+        <div class="state-section">
+            <h2 class="state-title">State Transition Events</h2>
+            <div class="mermaid">
+                flowchart LR
+                    A[Events] --> B[START_MOWING]
+                    A --> C[STOP_MOWING]
+                    A --> D[BATTERY_LOW]
+                    A --> E[BATTERY_CHARGED]
+                    A --> F[EMERGENCY_STOP]
+                    A --> G[RESET]
+                    A --> H[LIFT_DETECTED]
+                    A --> I[PLACED_DOWN]
+                    A --> J[MANUAL_CONTROL]
+                    A --> K[STOP_MANUAL]
+                    A --> L[ERROR]
+            </div>
+        </div>
+
+        <div class="note">
+            <p><strong>Note:</strong> This documentation reflects the current implementation as of July 2024. For the most up-to-date information, refer to the source code.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                defaultRenderer: 'dagre'
+            },
+            sequence: {
+                showSequenceNumbers: true,
+                useMaxWidth: true
+            },
+            state: {
+                useMaxWidth: true,
+                htmlLabels: true
+            },
+            themeCSS: '.node rect { fill: #e8f4f8; stroke: #3498db; } .edgeLabel { background-color: white; }'
+        });
+    </script>
+</body>
+</html>

@@ -4,15 +4,22 @@
 
 #include <Arduino.h>
 #include "../functions/MowerTypes.h"
+#include "NavigatorBase.h"
 
+// Forward declarations
 class Mower;
 
-class LawnMowerNavigator {
+class LawnMowerNavigator : public NavigatorBase {
 public:
     explicit LawnMowerNavigator(Mower& mower);
 
-    void begin();
-    void update();
+    // NavigatorBase interface implementation
+    void init(Mower& mower) override;
+    void update(Mower& mower) override;
+    bool handleEvent(Mower& mower, Event event) override;
+    const char* getName() const override { return "LAWN_MOWER"; }
+    void start(Mower& mower) override;
+    void stop(Mower& mower) override;
 
 private:
     enum class State { STRAIGHT, TURN1, OFFSET, TURN2, CORNER_TURN };

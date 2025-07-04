@@ -19,7 +19,7 @@
 - [void handleEncoderISR()](#handleencoderisr)
 - [void resetEncoder()](#resetencoder)
 - [void setAngularSpeed(float omega)](#setangularspeed)
-- [void setLinearSpeed(float speed)](#setlinearspeed)
+- [void setLinearSpeed(float speedPercent)](#setlinearspeed)
 - [void setPosition(float x, float y, float theta)](#setposition)
 - [void setPosition(float x, float y)](#setposition)
 - [void update()](#update)
@@ -142,8 +142,6 @@ float -
 float getY()
 ```
 
-Posizione X in metri
-
 **Returns:**
 
 float - 
@@ -193,12 +191,12 @@ void -
 #### setLinearSpeed
 
 ```cpp
-void setLinearSpeed(float speed)
+void setLinearSpeed(float speedPercent)
 ```
 
 **Parameters:**
 
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 

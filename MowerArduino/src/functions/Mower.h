@@ -16,21 +16,11 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-#include "../LCD/LCDMenu.h"
-
-// Forward declaration per risolvere la dipendenza circolare
-class LCDMenu;
-
-/**
- * @brief State and event type definitions for the mower state machine.
- */
-#include "MowerTypes.h"
+#include "../config.h"
+#include "../pin_config.h"
 #include "PositionManager.h"
-#include "../navigation/RandomNavigator.h"
-#include "../navigation/LawnMowerNavigator.h"
 
-
-// Forward declarations to resolve circular dependencies
+// Forward declarations per evitare dipendenze circolari
 class MowerState;
 class IdleState;
 class MowingState;
@@ -40,29 +30,39 @@ class ChargingState;
 class EmergencyStopState;
 class ManualControlState;
 class ErrorState;
-class BorderDetectedState;
 class LiftedState;
-class PausedState;
-class SleepState;
-class RainDelayState;
-class MaintenanceNeededState;
-class RosControlState;
+class NavigationManager;
+class NavigatorBase;
+class RandomNavigator;
+class LawnMowerNavigator;
+class BorderNavigator;
 
-// Hardware component includes
+// Includi solo gli header necessari
+#include "../states/MowerState.h"
+#include "../LCD/LCDMenu.h"
+
+// Includi i moduli principali
+#include "../sensors/IMUModule/IMUModule.h"
+#include "../sensors/GPSModule/GPSModule.h"
+#include "../sensors/UltrasonicSensors/UltrasonicSensors.h"
+// Include navigator headers
+#include "../navigation/RandomNavigator.h"
+#include "../navigation/LawnMowerNavigator.h"
+#include "../navigation/BorderNavigator.h"
+#include "../navigation/NavigationManager.h"
+
+// Include motor and sensor headers
 #include "../motors/DriveMotor/DriveMotor.h"
 #include "../motors/BladeMotor/BladeMotor.h"
+#include "../sensors/BatterySensor/BatterySensor.h"
+#include "../sensors/RainSensor/RainSensor.h"
+#include "../sensors/BumpSensors/BumpSensors.h"
 #include "../actuators/Buzzer/Buzzer.h"
 #include "../actuators/Relay/Relay.h"
+#include "PositionManager.h"
 
-// Sensor includes
-#include "../sensors/BatterySensor/BatterySensor.h"
-#include "../sensors/BumpSensors/BumpSensors.h"
-#include "../sensors/UltrasonicSensors/UltrasonicSensors.h"
-#include "../sensors/IMUModule/IMUModule.h"
-#ifdef ENABLE_GPS
-#include "../sensors/GPSModule/GPSModule.h"
-#endif
-#include "../sensors/RainSensor/RainSensor.h"
+// Include NavigationManager after forward declarations
+#include "../navigation/NavigationManager.h"
 
 /**
  * @class Mower
@@ -76,8 +76,6 @@ class RosControlState;
  * - Managing navigation and mowing patterns
  */
 class Mower {
-    friend class RandomNavigator;
-    friend class LawnMowerNavigator;
     // Dichiarazioni friend per le classi stato
     friend class IdleState;
     friend class MowingState;
@@ -98,6 +96,91 @@ class Mower {
     friend class WiFiRemote;
     
 public:
+    // Metodi di navigazione
+    bool saveHomePosition();
+    bool hasValidHomePosition() const;
+    float getDistanceToHome() const;
+    float getBearingToHome() const;
+    
+    // GPS getters (delegati al PositionManager)
+    double getGPSLatitude() const { return positionManager_->getGPSLatitude(); }
+    double getGPSLongitude() const { return positionManager_->getGPSLongitude(); }
+    float getGPSHDOP() const { return positionManager_->getGPSHDOP(); }
+    uint8_t getGPSSatellites() const { return positionManager_->getGPSSatellites(); }
+    bool hasGPSFix() const { return positionManager_->hasGPSFix(); }
+    
+    // Get the current position from PositionManager
+    RobotPosition getCurrentPosition() const { 
+        return positionManager_ ? positionManager_->getPosition() : RobotPosition(); 
+    }
+    
+    /**
+     * @brief Updates the daily work time counter
+     * @param isWorking True if the mower is currently working (mowing)
+     * @return True if daily work limit is reached
+     */
+    bool updateWorkTime(bool isWorking) {
+        unsigned long currentTime = millis();
+        
+        // Reset counters at midnight
+        if (currentTime - lastMidnightReset_ >= 24 * 60 * 60 * 1000UL) {
+            totalWorkTimeToday_ = 0;
+            lastMidnightReset_ = currentTime - (currentTime % (24 * 60 * 60 * 1000UL));
+            DEBUG_PRINTLN(F("Resetting daily work time counter at midnight"));
+        }
+        
+        // Update work time if mower is working
+        if (isWorking && lastWorkTimeUpdate_ > 0) {
+            unsigned long elapsed = currentTime - lastWorkTimeUpdate_;
+            totalWorkTimeToday_ += elapsed;
+            
+            DEBUG_PRINT(F("Daily work time: "));
+            DEBUG_PRINT(totalWorkTimeToday_ / (60 * 60 * 1000UL)); // Hours
+            DEBUG_PRINT(F("h "));
+            DEBUG_PRINT((totalWorkTimeToday_ % (60 * 60 * 1000UL)) / (60 * 1000UL)); // Minutes
+            DEBUG_PRINTLN(F("m"));
+            
+            // Check if daily limit is reached
+            if (totalWorkTimeToday_ >= MAX_DAILY_WORK_TIME) {
+                DEBUG_PRINTLN(F("Daily work limit (8h) reached!"));
+                return true;
+            }
+        }
+        
+        lastWorkTimeUpdate_ = currentTime;
+        return false;
+    }
+    
+    /**
+     * @brief Resets the daily work time counter
+     */
+    void resetWorkTime() {
+        totalWorkTimeToday_ = 0;
+        lastWorkTimeUpdate_ = millis();
+        lastMidnightReset_ = lastWorkTimeUpdate_ - (lastWorkTimeUpdate_ % (24 * 60 * 60 * 1000UL));
+        DEBUG_PRINTLN(F("Work time counter reset"));
+    }
+    
+    /**
+     * @brief Get the distance from the left front ultrasonic sensor
+     * @return Distance in centimeters
+     */
+    float getLeftSensorDistance() const { 
+        return ultrasonicSensors.getFrontLeftDistance(); 
+    }
+    
+    /**
+     * @brief Get the distance from the right front ultrasonic sensor
+     * @return Distance in centimeters
+     */
+    float getRightSensorDistance() const { 
+        return ultrasonicSensors.getFrontRightDistance(); 
+    }
+    
+    // Ottieni il PositionManager
+    PositionManager* getPositionManager() { return positionManager_; }
+    const PositionManager* getPositionManager() const { return positionManager_; }
+    
     /**
      * @brief State type alias from MowerTypes.h
      */
@@ -260,6 +343,26 @@ public:
     }
     
     /**
+     * @brief Check if the GPS has a valid fix
+     * @return true if GPS has a valid fix, false otherwise
+     */
+    bool isGPSValid() const {
+#ifdef ENABLE_GPS
+        return gps.isValid() && gps.getHDOP() < MAX_HDOP_FOR_HOME_POSITION && 
+               gps.getSatellites() >= MIN_SATELLITES_FOR_HOME_POSITION;
+#else
+        return false;
+#endif
+    }
+    // Get the current compass heading
+    // Returns: Heading in degrees (0-360), or 0 if compass is not available
+    float getCompassHeading() const {
+        // TODO: Implement this method to get the current compass heading
+        // This is a placeholder - replace with actual compass reading
+        return 0.0f;
+    }
+    
+    /**
      * @brief Get the ultrasonic sensor distances
      * @param distances Array of floats to store the distances (in cm)
      * @param maxDistances Maximum number of distances to retrieve
@@ -276,13 +379,13 @@ public:
     
     /**
      * @brief Set manual control for the mower
-     * @param leftSpeed Speed for the left motor (-1.0 to 1.0)
-     * @param rightSpeed Speed for the right motor (-1.0 to 1.0)
+     * @param leftSpeed Speed for the left motor (-100.0 to 100.0)
+     * @param rightSpeed Speed for the right motor (-100.0 to 100.0)
      */
     void setManualControl(float leftSpeed, float rightSpeed) {
-        // Assicurati che le velocità siano nel range corretto
-        leftSpeed = constrain(leftSpeed, -1.0f, 1.0f);
-        rightSpeed = constrain(rightSpeed, -1.0f, 1.0f);
+        // Assicurati che le velocità siano nel range corretto (-100.0% a 100.0%)
+        leftSpeed = constrain(leftSpeed, -100.0f, 100.0f);
+        rightSpeed = constrain(rightSpeed, -100.0f, 100.0f);
         
         // Imposta le velocità dei motori utilizzando i metodi esistenti
         setLeftMotorSpeed(leftSpeed);
@@ -357,6 +460,112 @@ public:
     void updateMotors();
     
     /**
+     * @brief Start the blade motor
+     */
+    void startBlades();
+    
+    /**
+     * @brief Stop the blade motor
+     */
+    void stopBlades();
+    
+    /**
+     * @brief Set the speed of the blade motor
+     * @param speed Speed value from 0.0 to 100.0 (percentage of max speed)
+     */
+    void setBladeSpeed(float speed);
+    
+    /**
+     * @brief Stop all motors (drive and blade)
+     */
+    void stopMotors();
+    
+    /**
+     * @brief Start the mowing operation
+     */
+    void startMowing();
+    
+    /**
+     * @brief Start the docking operation
+     */
+    void startDocking();
+    
+    /**
+     * @brief Update all sensor readings
+     */
+    void updateSensors();
+    
+    /**
+     * @brief Perform emergency stop
+     */
+    void emergencyStop();
+    
+    /**
+     * @brief Reset emergency stop condition
+     */
+    void resetEmergencyStop();
+    
+    /**
+     * @brief Handle border detection
+     */
+    void handleBorder();
+    
+    /**
+     * @brief Handle obstacle detection
+     */
+    void handleObstacle();
+    
+    /**
+     * @brief Set the current state of the mower
+     * @param newState The new state to transition to
+     */
+    void setState(State newState);
+    
+    /**
+     * @brief Set the current state of the mower using a state object reference
+     * @param newState Reference to the new concrete state
+     */
+    void setState(MowerState& newState) { changeState(newState); }
+    
+    /**
+     * @brief Set the speed of the left drive motor
+     * @param speed Speed value from -100.0 to 100.0 (percentage of max speed)
+     */
+    void setLeftMotorSpeed(float speed) {
+        if (leftMotor_) leftMotor_->setSpeed(speed);
+    }
+    
+    /**
+     * @brief Set the speed of the right drive motor
+     * @param speed Speed value from -100.0 to 100.0 (percentage of max speed)
+     */
+    void setRightMotorSpeed(float speed) {
+        if (rightMotor_) rightMotor_->setSpeed(speed);
+    }
+    
+    /**
+     * @brief Start both drive motors at their current speed settings
+     */
+    void startDriveMotors() {
+        // The DriveMotor class doesn't have a start() method.
+        // The motors are started by setting their speed.
+        // The current speed should already be set, so we just need to ensure
+        // the motors are enabled if needed.
+        if (leftMotor_) leftMotor_->setLinearSpeed(leftMotorSpeed_);
+        if (rightMotor_) rightMotor_->setLinearSpeed(rightMotorSpeed_);
+    }
+    
+    /**
+     * @brief Stop both drive motors
+     */
+    void stopDriveMotors() {
+        if (leftMotor_) leftMotor_->setLinearSpeed(0);
+        if (rightMotor_) rightMotor_->setLinearSpeed(0);
+        leftMotorSpeed_ = 0;
+        rightMotorSpeed_ = 0;
+    }
+    
+    /**
      * @name Navigation Control
      * @{
      */
@@ -377,19 +586,6 @@ public:
      * @details Uses perimeter wire sensors to follow the boundary
      */
     void followPerimeter();
-    
-    /** @} */
-    
-    /**
-     * @name Debugging
-     * @{
-     */
-    
-    /**
-     * @brief Print debug information to the serial console
-     * @details Outputs system status, sensor readings, and state information
-     */
-    void printDebugInfo() const;
     
     /** @} */
     
@@ -461,13 +657,11 @@ public:
     
     /** @} */
     
-    /**
-     * @name User Interface
-     * 
-     */
- private:
     // Reference to the LCDMenu instance
     LCDMenu* lcdMenu = nullptr;  // Inizializzato a nullptr
+    
+    // Riferimento al PositionManager
+    PositionManager* positionManager_;
     
     /**
      * @brief Clear the LCD display
@@ -529,6 +723,27 @@ public:
      * @return true if charging, false otherwise
      */
     bool isCharging() const { return charging_; }
+    
+    /**
+     * @brief Enable or disable battery charging
+     * @param enable true to enable charging, false to disable
+     * @return true if successful, false otherwise
+     */
+    bool enableCharging(bool enable); /* implemented in Mower.cpp */
+
+    /* removed inline body to avoid duplicate definition */
+    /* bool enableCharging(bool enable) {
+        if (enable) {
+            chargingRelay.on();
+            charging_ = true;
+            DEBUG_PRINTLN("Charging enabled");
+        } else {
+            chargingRelay.off();
+            charging_ = false;
+            DEBUG_PRINTLN("Charging disabled");
+        }
+        return true;
+    }
     
     /**
      * @brief Check if the mower is lifted off the ground
@@ -640,14 +855,16 @@ public:
     using NavigationMode = ::NavigationMode;
     
     /**
-     * @brief Get the current navigation mode
+     * @brief Gets the current navigation mode
      * @return Current navigation mode
      */
-    NavigationMode getNavigationMode() const { return navigationMode_; }
+    NavigationMode getNavigationMode() const { 
+        return navigationManager_.getCurrentMode(); 
+    }
     
     /**
-     * @brief Set the navigation mode
-     * @param mode New navigation mode
+     * @brief Sets the navigation mode
+     * @param mode Navigation mode to set
      */
     void setNavigationMode(NavigationMode mode);
     
@@ -658,166 +875,62 @@ public:
      */
     const char* navigationModeToString(NavigationMode mode) const;
     
-    /**
-     * @name Blade Control
-     * @{
-     */
+    // Navigator access methods
+    RandomNavigator& getRandomNavigator();
+    LawnMowerNavigator& getLawnMowerNavigator();
+    BorderNavigator& getBorderNavigator();
+    NavigatorBase* getCurrentNavigator();
+    const char* getCurrentNavigatorName() const;
     
     /**
-     * @brief Start the blade motor
+     * @brief Start navigation with the current navigation mode
      */
-    void startBlades();
+    void startNavigation();
     
     /**
-     * @brief Stop the blade motor
+     * @brief Stop navigation
      */
-    void stopBlades();
+    void stopNavigation();
     
     /**
-     * @brief Set the blade motor speed
-     * @param speed Speed value (0.0 to 1.0)
+     * @brief Check if navigation is active
+     * @return true if navigation is active, false otherwise
      */
-    void setBladeSpeed(float speed);
+    bool isNavigating() const { return isNavigating_; }
     
     /** @} */
     
-    /**
-     * @name Drive Motor Control
-     * @{
-     */
+private:
+    // ... (rest of the code remains the same)
+
+    // Motor controllers (using pointers for polymorphism if needed)
+    DriveMotor* leftMotor_ = &leftMotor;  ///< Pointer to left drive motor controller
+    DriveMotor* rightMotor_ = &rightMotor; ///< Pointer to right drive motor controller
+    float leftMotorSpeed_ = 0.0f;         ///< Current left motor speed (-100.0 to 100.0)
+    float rightMotorSpeed_ = 0.0f;        ///< Current right motor speed (-100.0 to 100.0)
     
-    /**
-     * @brief Set the left drive motor speed
-     * @param speed Speed value (-1.0 to 1.0, negative for reverse)
-     */
-    void setLeftMotorSpeed(float speed);
+    // Navigation
+    NavigationManager navigationManager_;
+    NavigationMode navigationMode_;
+    bool isNavigating_ = false;
     
-    /**
-     * @brief Set the right drive motor speed
-     * @param speed Speed value (-1.0 to 1.0, negative for reverse)
-     */
-    void setRightMotorSpeed(float speed);
-    
-    /**
-     * @brief Stop both drive motors
-     */
-    void stopDriveMotors();
-    
-    /**
-     * @brief Restart the drive motors with the last set speeds
-     * 
-     * This method reactivates the drive motors using the previously set speeds.
-     * It's typically called after motors have been stopped temporarily.
-     */
-    void startDriveMotors();
-    
-    /**
-     * @brief Stop all motors (drive and blade)
-     */
-    void stopMotors();
-    
-    /** @} */
-    
-    /**
-     * @name Safety System
-     * @{
-     */
-    
-    /**
-     * @brief Immediately stop all motors and enter emergency stop state
-     */
-    void emergencyStop();
-    
-    /**
-     * @brief Reset the emergency stop condition
-     */
-    void resetEmergencyStop();
-    
-    /**
-     * @brief Check if emergency stop is active
-     * @return true if emergency stop is active, false otherwise
-     */
-    bool isEmergencyStopActive() const { return emergencyStopActive_; }
-    
-    /**
-     * @brief Enable or disable battery charging
-     * @param enable true to enable charging, false to disable
-     * @return true if successful, false otherwise
-     */
-    bool enableCharging(bool enable);
-    
-    /**
-     * @brief Update all sensor readings
-     * @details Should be called regularly to keep sensor data current
-     */
-    void updateSensors();
-    
-    /**
-     * @brief Handle border detection event
-     * @details Called when the mower detects a boundary or perimeter wire
-     */
-    void handleBorder();
-    
-    /**
-     * @brief Handle obstacle detection
-     * @details Called when an obstacle is detected by sensors
-     */
-    void handleObstacle();
-    
-    /**
-     * @brief Start mowing operation
-     */
-    void startMowing();
-    
-    /**
-     * @brief Start docking procedure
-     */
-    void startDocking();
-    
-    /**
-     * @brief Set the system state
-     * @param newState New state to transition to
-     */
-    void setState(State newState);
-    
-    /**
-     * @brief Set the system state using a state object
-     * @param newState Reference to the new state object
-     */
-    void setState(MowerState& newState) { changeState(newState); }
-    
-    /**
-     * @brief Perform safety checks
-     * @details Verifies system safety and triggers emergency stop if needed
-     */
+    // Safety check
     void checkSafety();
 
+    // Navigation methods
+    void updateNavigation();
 
+    // Timers and timing
+    unsigned long lastUpdateTime_;
+    unsigned long lastSensorUpdate_;
+    unsigned long lastSensorReadTime_ = 0;
+    unsigned long lastDisplayUpdateTime_;
+    unsigned long lastBatteryCheckTime_;
+    unsigned long totalWorkTimeToday_ = 0;         // Tempo totale di lavoro oggi (ms)
+    unsigned long lastWorkTimeUpdate_ = 0;         // Ultimo aggiornamento del tempo di lavoro
+    unsigned long lastMidnightReset_ = 0;          // Timestamp dell'ultimo reset a mezzanotte
+    static constexpr unsigned long MAX_DAILY_WORK_TIME = 8 * 60 * 60 * 1000UL; // 8 ore in millisecondi(ms)
 
-    // Dichiarazione di friend per consentire a RemoteCommand di accedere ai membri privati
-    friend class RemoteCommand;
-    friend class WiFiRemote;
-
-private:
-    // Current and next state pointers for state machine
-    MowerState* currentState_;      ///< Current state of the mower state machine
-    MowerState* nextState_;         ///< Next state to transition to
-
-    
-    // Internal state variables
-    bool emergencyStopActive_;      ///< Flag indicating if emergency stop is active
-    bool isLifted_;                ///< Flag indicating if the mower is lifted
-    bool bladesRunning_;            ///< Flag indicating if blades are running
-    float leftMotorSpeed_;          ///< Current speed of left motor (-1.0 to 1.0)
-    float rightMotorSpeed_;         ///< Current speed of right motor (-1.0 to 1.0)
-    float bladeSpeed_;              ///< Current blade speed (0.0 to 1.0)
-    bool charging_;                 ///< Flag indicating if charging is active
-    float batteryLevel_;             ///< Current battery level (0.0 to 100.0)
-    NavigationMode navigationMode_;
-    RandomNavigator randomNavigator_;
-    LawnMowerNavigator lawnNavigator_;
-    unsigned long lastSensorUpdate_;  ///< Timestamp of last sensor update (ms)
-    
     // Sensor states
     bool lifted_;                    ///< Flag indicating if mower is lifted
     bool borderDetected_;            ///< Flag indicating if border wire is detected
@@ -827,6 +940,13 @@ private:
     bool batteryLow_;                ///< Flag indicating low battery
     bool batteryCharged_;            ///< Flag indicating battery is charged
     bool batteryFull_;               ///< Flag indicating battery is fully charged
+    bool charging_;                  ///< Flag indicating if battery is charging
+    bool emergencyStopActive_ = false; ///< Flag indicating if emergency stop is active
+    bool bladesRunning_ = false;     ///< Flag indicating if blades are running
+    float batteryLevel_;             ///< Current battery level (0-100%)
+    float bladeSpeed_ = 0.0f;        ///< Current blade speed (0-100%)
+    MowerState* currentState_;       ///< Current state of the mower
+    MowerState* nextState_;          ///< Next state to transition to
     
     // Error handling
     String lastError_;               ///< Last error message
@@ -850,6 +970,11 @@ private:
         ULTRASONIC_RIGHT,       ///< Right ultrasonic sensor
         ULTRASONIC_REAR         ///< Rear ultrasonic sensor
     };
+    
+    // Navigation components
+    RandomNavigator randomNavigator_;      ///< Random navigation algorithm
+    LawnMowerNavigator lawnMowerNavigator_; ///< Lawn mower pattern navigation
+    BorderNavigator borderNavigator_;      ///< Border following navigation
     
     // Hardware components
     DriveMotor leftMotor;            ///< Left drive motor controller

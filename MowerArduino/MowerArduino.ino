@@ -30,7 +30,6 @@
 // Include system classes
 #include "src/LCD/LCDMenu.h"
 #include "src/functions/Mower.h"
-// #include "src/communications/RemoteCommand.h"  // Non più necessario
 #include "src/communications/WiFiRemote.h"
 
 // Create global LCDMenu instance

@@ -47,6 +47,12 @@ public:
         return instance;
     }
     
+    /**
+     * @brief Handles the sensor-based approach when GPS is not available
+     * @param mower Reference to the Mower instance
+     */
+    void handleSensorBasedApproach(Mower& mower);
+    
     // ===== MowerState Interface Implementation =====
     
     /**
@@ -124,12 +130,16 @@ private:
     unsigned long lastPhaseChangeTime_ = 0; ///< Timestamp of last phase change (ms)
     unsigned long dockingStartTime_ = 0;   ///< Timestamp when docking started (ms)
     unsigned long phaseStartTime_ = 0;     ///< Timestamp when current phase started (ms)
+    DockingPhase currentPhase;
+    unsigned long phaseStartTime;
+    bool isDocked;
+    bool isCharging;
     
-    // ===== Constants =====
-    
-    static constexpr float DOCK_DETECTION_DISTANCE = 50.0f;  ///< Maximum distance to detect dock (cm)
-    static constexpr unsigned long DOCKING_TIMEOUT = 5 * 60 * 1000UL;  ///< Total timeout for docking (5 min)
-    static constexpr unsigned long ALIGNMENT_TIMEOUT = 30000UL;  ///< Timeout for alignment phase (30s)
+    /**
+     * @brief Esegue un pattern di ricerca quando i sensori non rilevano la base
+     * @param mower Riferimento all'oggetto Mower
+     */
+    void performSearchPattern(Mower& mower);
     static constexpr unsigned long DOCKING_CONFIRMATION_TIME = 3000UL;  ///< Time to confirm docked state (3s)
     
     // ===== Private Methods =====

@@ -45,56 +45,71 @@ enum class State {
  * transitions in the mower's state machine.
  */
 enum class Event {
-    // Comandi utente
-    START_MOWING,
-    STOP_MOWING,
-    START_DOCKING,
-    PAUSE,
-    RESUME,
-    EMERGENCY_STOP,
-    MANUAL_CONTROL_ENABLED,
-    MANUAL_CONTROL_DISABLED,
+    // ===== Comandi utente =====
+    START_MOWING,           // Avvia il taglio
+    STOP_MOWING,            // Ferma il taglio
+    START_DOCKING,          // Inizia il docking
+    PAUSE,                  // Mette in pausa
+    RESUME,                 // Riprende dallo stato di pausa
+    EMERGENCY_STOP,         // Arresto di emergenza
+    MANUAL_CONTROL_ENABLED, // Abilita controllo manuale
+    MANUAL_CONTROL_DISABLED,// Disabilita controllo manuale
+    BUTTON_PRESSED,         // Pulsante premuto
+    RESET,                  // Reset del sistema
     
-    // Eventi sensori
-    BORDER_DETECTED,
-    LIFT_DETECTED,
-    RAIN_DETECTED,
-    BATTERY_LOW,
-    BATTERY_FULL,
-    CHARGING_STARTED,    // Inizio della ricarica
-    CHARGING_STOPPED,    // Fine della ricarica
-    DOCK_DETECTED,        // Rilevato l'aggancio alla base
-    UNDOCK_DETECTED,      // Rilevato lo sgancio dalla base
-    OBSTACLE_DETECTED,    // Rilevato un ostacolo davanti
-    UNDOCKING_COMPLETE,   // Undocking completato con successo
-    ERROR_DETECTED,
-    ERROR_CLEARED,
+    // ===== Eventi sensori =====
+    BORDER_DETECTED,        // Rilevato bordo
+    LIFT_DETECTED,          // Rilevato sollevamento
+    LIFT_RESOLVED,          // Tosaerba rimesso a terra
+    PLACED_ON_GROUND,       // Tosaerba posizionato a terra
+    RAIN_DETECTED,          // Rilevata pioggia
+    OBSTACLE_DETECTED,      // Rilevato ostacolo
+    OBSTACLE_AVOIDED,       // Ostacolo evitato
+    BORDER_AVOIDED,         // Bordo evitato
+    DOCK_DETECTED,          // Rilevato aggancio alla base
+    UNDOCK_DETECTED,        // Rilevato sgancio dalla base
+    LOST_SIGNAL,            // Segnale perso
+    SIGNAL_RESTORED,        // Segnale ripristinato
     
-    // Eventi aggiuntivi
-    BUTTON_PRESSED,          // Pulsante premuto
-    BATTERY_CRITICAL,        // Batteria critica
-    BATTERY_CHARGED,         // Batteria completamente carica
-    DOCKING_COMPLETE,        // Docking completato con successo
-    DOCKING_FAILED,          // Docking fallito
-    LIFT_RESOLVED,           // Tosaerba rimesso a terra
-    PLACED_ON_GROUND,        // Tosaerba posizionato a terra
-    RESET,                   // Reset del sistema
-    DOCKING,                 // Inizio del docking
-    UNDOCKING,               // Inizio dell'undocking
-    BATTERY_CHARGING,        // Batteria in carica
-    BATTERY_DISCHARGING,     // Batteria in scarica
-    CHARGING_COMPLETE,       // Carica completata
-    CHARGING_ERROR,          // Errore durante la ricarica
-    OBSTACLE_AVOIDED,        // Ostacolo evitato
-    BORDER_AVOIDED,          // Bordo evitato
-    LOST_SIGNAL,             // Segnale perso
-    SIGNAL_RESTORED,         // Segnale ripristinato
-    MAINTENANCE_REQUIRED,    // Manutenzione richiesta
-    MAINTENANCE_COMPLETE,    // Manutenzione completata
-    RAIN_DELAY_START,        // Inizio ritardo pioggia
-    RAIN_DELAY_END,          // Fine ritardo pioggia
-    SLEEP_MODE,              // Modalità risparmio energetico
-    WAKE_UP                  // Uscita dalla modalità risparmio energetico
+    // ===== Eventi batteria =====
+    BATTERY_LOW,            // Batteria bassa
+    BATTERY_CRITICAL,       // Batteria critica
+    BATTERY_FULL,           // Batteria piena
+    BATTERY_CHARGED,        // Batteria completamente carica
+    BATTERY_CHARGING,       // Batteria in carica
+    BATTERY_DISCHARGING,    // Batteria in scarica
+    
+    // ===== Eventi di ricarica =====
+    CHARGING_STARTED,       // Inizio della ricarica
+    CHARGING_STOPPED,       // Fine della ricarica
+    CHARGING_COMPLETE,      // Carica completata
+    CHARGING_ERROR,         // Errore durante la ricarica
+    
+    // ===== Eventi di navigazione =====
+    DOCKING,                // Inizio del docking
+    DOCKING_COMPLETE,       // Docking completato con successo
+    DOCKING_FAILED,         // Docking fallito
+    UNDOCKING,              // Inizio dell'undocking
+    UNDOCKING_COMPLETE,     // Undocking completato con successo
+    
+    // ===== Eventi di sistema =====
+    EMERGENCY_STOP_PRESSED, // Pulsante di emergenza premuto
+    EMERGENCY_STOP_RELEASED,// Pulsante di emergenza rilasciato
+    MAINTENANCE_REQUIRED,   // Manutenzione richiesta
+    MAINTENANCE_COMPLETE,   // Manutenzione completata
+    RAIN_DELAY_START,       // Inizio ritardo pioggia
+    RAIN_DELAY_END,         // Fine ritardo pioggia
+    SLEEP_MODE,             // Entra in modalità risparmio energetico
+    WAKE_UP,                // Esci dalla modalità risparmio energetico
+    DAILY_WORK_LIMIT_REACHED, // Raggiunto limite di 8 ore di lavoro
+    TEST_COMPLETED,         // Test completato
+    USER_INTERACTION,       // Interazione utente rilevata
+    TIMER_EXPIRED,          // Timer scaduto
+    MOTOR_ERROR,            // Errore motore
+    SENSOR_ERROR,           // Errore sensore
+    SYSTEM_ERROR,           // Errore di sistema
+    ERROR_DETECTED,         // Errore generico rilevato
+    ERROR_CLEARED           // Errore risolto
 };
 
 /**

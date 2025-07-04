@@ -326,6 +326,17 @@
 #define SYSTEMATIC_PATTERN_ENABLED  // Abilita pattern sistematico
 #define EDGE_FOLLOWING_ENABLED      // Abilita seguimento bordi
 
+// --- NAVIGAZIONE GPS ---
+// Maximum HDOP (Horizontal Dilution of Precision) for considering a GPS position valid for home position
+// Lower values indicate better precision (1.0 is excellent, 2-5 is good, >5 is poor)
+#define MAX_HDOP_FOR_HOME_POSITION 2.0
+
+// Minimum number of satellites required for a valid home position fix
+#define MIN_SATELLITES_FOR_HOME_POSITION 6
+
+// Minimum time (in milliseconds) to wait for GPS to get a good fix before giving up
+#define GPS_FIX_TIMEOUT_MS 30000
+
 // --- SICUREZZA ---
 #define EMERGENCY_STOP_ENABLED   // Arresto di emergenza
 #define TILT_PROTECTION_ENABLED  // Protezione inclinazione

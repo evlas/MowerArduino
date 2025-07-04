@@ -1,4 +1,37 @@
-# MowerArduino Documentation
+# MowerArduino - Method Call Sequence Visualization
+
+This directory contains documentation that visualizes the method call sequence and state transitions in the MowerArduino project.
+
+## Contents
+
+- `index.html`: Interactive web page showing the method call sequence and state transitions
+
+## How to Use
+
+1. Open `index.html` in a modern web browser
+2. The page will display several diagrams showing:
+   - Main program flow
+   - State transitions
+   - Mowing state flow
+   - Docking sequence
+
+## Diagrams
+
+### Main Program Flow
+Shows the high-level sequence of method calls from `setup()` through the main `loop()`.
+
+### State Transitions
+Illustrates how the mower transitions between different states (Idle, Mowing, Docking, etc.) based on events.
+
+### Mowing State Flow
+Details the flow within the Mowing state, including obstacle and border handling.
+
+### Docking Sequence
+Shows the step-by-step process of the mower returning to its charging station.
+
+## Dependencies
+
+The visualization uses [Mermaid.js](https://mermaid.js.org/), which is loaded from a CDN. An internet connection is required to view the diagrams.Arduino Documentation
 
 This directory contains the auto-generated API documentation for the MowerArduino project.
 

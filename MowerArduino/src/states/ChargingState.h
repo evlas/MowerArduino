@@ -12,6 +12,7 @@
 #define CHARGING_STATE_H
 
 #include "MowerState.h"
+#include "../config.h"
 
 /**
  * @class ChargingState

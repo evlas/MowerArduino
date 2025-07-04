@@ -1,22 +1,28 @@
 #include <Arduino.h>
 #include "Mower.h"
-#include "../config.h"  // Per le costanti di configurazione
-#include "../pin_config.h"
-#include "../LCD/LCDMenu.h"  // Deve essere incluso dopo Mower.h
-
-// Includi tutti gli stati
+#include "../states/MowerState.h"
 #include "../states/IdleState.h"
 #include "../states/MowingState.h"
 #include "../states/DockingState.h"
+#include "../states/UndockingState.h"
 #include "../states/ChargingState.h"
 #include "../states/EmergencyStopState.h"
 #include "../states/ManualControlState.h"
 #include "../states/ErrorState.h"
+#include "../states/LiftedState.h"
+#include "PositionManager.h"
+#include "pin_config.h"
+#include "../navigation/NavigationManager.h"
+#include "../navigation/RandomNavigator.h"
+#include "../navigation/LawnMowerNavigator.h"
+#include "../navigation/BorderNavigator.h"
+
+// Riferimento globale al PositionManager
+extern PositionManager positionManager;
 
 // ---------------------------------------------------------------------------
 // Costruttore unificato con parametro opzionale
-Mower::Mower(LCDMenu* lcdMenu) :
-    randomNavigator_(*this), lawnNavigator_(*this), 
+Mower::Mower(LCDMenu* lcdMenu) : 
     currentState_(nullptr),
     emergencyStopActive_(false), 
     bladesRunning_(false), 
@@ -35,11 +41,17 @@ Mower::Mower(LCDMenu* lcdMenu) :
     batteryLow_(false),
     batteryCharged_(false),
     batteryFull_(false),
-    // Inizializza i motori con i pin corretti
+    // Initialize navigators with Mower reference
+    randomNavigator_(*this),
+    lawnMowerNavigator_(*this),
+    borderNavigator_(),
+    // Initialize NavigationManager
+    navigationManager_(),
+    // Initialize motors with correct pins
     leftMotor(MOTOR_LEFT_PWM_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_REVERSE),
     rightMotor(MOTOR_RIGHT_PWM_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_REVERSE),
     bladeMotor(MOTOR_BLADE_PWM_PIN, MOTOR_BLADE_DIR_PIN, MOTOR_BLADE_REVERSE),
-    // Inizializza il puntatore a LCDMenu
+    // Initialize LCDMenu pointer
     lcdMenu(lcdMenu)
 {
     // Inizializza i relè
@@ -59,34 +71,40 @@ void Mower::begin() {
     // Initialize serial communication for debug if enabled
     DEBUG_PRINTLN("Debug serial initialized");
     
-    // Non inizializzare nuovamente l'LCD qui, viene già fatto in setup()
-    // L'oggetto lcdMenu viene passato al costruttore di Mower
-    
-    // Inizializza il sensore di batteria solo se non è già stato fatto
-    static bool batterySensorInitialized = false;
-    if (!batterySensorInitialized) {
-        batterySensorInitialized = batterySensor.begin();
+    // Inizializza il display LCD se presente
+    if (lcdMenu != nullptr) {
+        lcdMenu->begin();
     }
     
-    // Inizializza i sensori di urto
-    bumpSensors.begin();
+    // Inizializza i motori
+    leftMotor.begin();
+    rightMotor.begin();
+    bladeMotor.begin();
     
-    // Inizializza i sensori ad ultrasuoni
+    // Inizializza i sensori
     ultrasonicSensors.begin();
     
-    // Inizializza l'IMU
-    imu.begin();
-    DEBUG_PRINTLN("IMU inizializzata");
-
-    #ifdef ENABLE_GPS
-    gps.begin();
-    #endif
-
-    // Inizializza il sensore di pioggia
-    rainSensor.begin();
+    // Battery sensor initialization moved to Mower::updateSensors()
+    rainSensor.begin(); // No pin needed, using analog input directly
+    bumpSensors.begin();
     
-    // Inizializza il cicalino
-    buzzer.begin();
+    // Inizializza gli attuatori
+    buzzer.begin(); // No pin needed, using tone()
+    // Relay initialization moved to specific components
+    
+    // Inizializza il gestore della posizione
+    positionManager.begin();
+    
+    // Inizializza i navigatori
+    randomNavigator_.init(*this);
+    lawnMowerNavigator_.init(*this);
+    borderNavigator_.init(*this);
+    
+    // Inizializza il gestore di navigazione
+    navigationManager_.init(*this);
+    
+    // Imposta la modalità di navigazione predefinita
+    navigationManager_.setNavigationMode(NavigationMode::RANDOM);
     
     // Imposta lo stato iniziale
     setState(State::IDLE);
@@ -149,9 +167,30 @@ void Mower::update() {
     // Aggiorna lo stato corrente
     if (currentState_ != nullptr) {
         currentState_->update(*this);
+        
+        // Aggiorna la navigazione se attiva
+        if (isNavigating_) {
+            updateNavigation();
+        }
     }
     
-    // Puoi aggiungere logging o debug qui se necessario
+    // Aggiorna i motori con le velocità correnti
+    updateMotors();
+    stopMotors();
+}
+
+// ---------------------------------------------------------------------------
+// Stop all motors (drive and blade)
+// ---------------------------------------------------------------------------
+void Mower::stopMotors() {
+    // Stop drive motors
+    setLeftMotorSpeed(0);
+    setRightMotorSpeed(0);
+    leftMotor.update();
+    rightMotor.update();
+
+    // Stop blade motor
+    stopBlades();
 }
 
 // ===== Implementazione metodi motori =====
@@ -229,70 +268,7 @@ void Mower::stopBlades() {
     }
 }
 
-void Mower::setLeftMotorSpeed(float speed) {
-    // Assicurati che la velocità sia nel range corretto (-100.0 - 100.0)
-    leftMotorSpeed_ = constrain(speed, -100.0f, 100.0f);
-    
-    if (!emergencyStopActive_) {
-        // Imposta la velocità del motore sinistro
-        int motorSpeed = leftMotorSpeed_ * 100;  // Converti in percentuale (-100 a 100)
-        leftMotor.setSpeed(motorSpeed);
-        
-        #ifdef DEBUG
-        DEBUG_PRINT("Left motor speed set to: ");
-        DEBUG_PRINTLN(motorSpeed);
-        #endif
-    }
-}
-
-void Mower::setRightMotorSpeed(float speed) {
-    // Assicurati che la velocità sia nel range corretto (-100.0 - 100.0)
-    rightMotorSpeed_ = constrain(speed, -100.0f, 100.0f);
-    
-    if (!emergencyStopActive_) {
-        // Imposta la velocità del motore destro
-        int motorSpeed = rightMotorSpeed_ * 100;  // Converti in percentuale (-100 a 100)
-        rightMotor.setSpeed(motorSpeed);
-        
-        #ifdef DEBUG
-        DEBUG_PRINT("Right motor speed set to: ");
-        DEBUG_PRINTLN(motorSpeed);
-        #endif
-    }
-}
-
-void Mower::stopDriveMotors() {
-    // Ferma entrambi i motori di trazione
-    leftMotor.stop();
-    rightMotor.stop();
-    leftMotorSpeed_ = 0;
-    rightMotorSpeed_ = 0;
-    
-    #ifdef DEBUG
-    DEBUG_PRINTLN("Drive motors stopped");
-    #endif
-}
-
-void Mower::startDriveMotors() {
-    // Riattiva i motori di trazione con le ultime velocità impostate
-    if (!emergencyStopActive_) {
-        setLeftMotorSpeed(leftMotorSpeed_);
-        setRightMotorSpeed(rightMotorSpeed_);
-        #ifdef DEBUG
-        DEBUG_PRINTLN("Drive motors started");
-        #endif
-    }
-}
-
-void Mower::stopMotors() {
-    // Ferma tutti i motori
-    stopBlades();
-    stopDriveMotors();
-    
-    #ifdef DEBUG
-    DEBUG_PRINTLN("All motors stopped");
-    #endif
-}
+// Motor control methods are implemented inline in Mower.h
 
 void Mower::stopBuzzer() {
     buzzer.stop();
@@ -324,7 +300,7 @@ void Mower::updateSensors() {
     rainSensor.update();
     
     // Gestisci lo stato di pioggia
-    if (rainSensor.isRaining() && getState() != State::RAIN_DELAY) {
+    if (rainSensor.isRaining() && getState() != State::IDLE) {
         handleEvent(Event::RAIN_DETECTED);
     }
     #endif
@@ -480,6 +456,15 @@ void Mower::handleEvent(Event event) {
     DEBUG_PRINT("MOWER: handleEvent - Ricevuto evento: ");
     DEBUG_PRINTLN(eventToString(event));
     
+    // Inoltra l'evento al NavigationManager se siamo in modalità di navigazione
+    if (isNavigating_ && currentState_ != nullptr && currentState_->getStateType() == State::MOWING) {
+        if (navigationManager_.handleEvent(*this, event)) {
+            DEBUG_PRINTLN("MOWER: Evento gestito dal NavigationManager");
+            return;
+        }
+    }
+    
+    // Altrimenti, inoltra l'evento allo stato corrente
     if (currentState_ != nullptr) {
         DEBUG_PRINT("MOWER: Inoltro evento allo stato corrente: ");
         DEBUG_PRINTLN(stateToString(currentState_->getStateType()));
@@ -788,13 +773,52 @@ const char* Mower::stateToString(State state) const {
         case State::MANUAL_CONTROL: return "MANUAL_CONTROL";
         case State::ERROR: return "ERROR";
         case State::LIFTED: return "LIFTED";
-        case State::PAUSED: return "PAUSED";
-        case State::SLEEP: return "SLEEP";
-        case State::RAIN_DELAY: return "RAIN_DELAY";
-        case State::MAINTENANCE_NEEDED: return "MAINTENANCE_NEEDED";
-        case State::ROS_CONTROL: return "ROS_CONTROL";
+        // Handle any unimplemented states with a default case
         default: return "UNKNOWN";
     }
+}
+
+// ===== Implementazione metodi di navigazione =====
+void Mower::updateNavigation() {
+    // Aggiorna il gestore di navigazione
+    if (navigationManager_.isNavigationActive()) {
+        navigationManager_.update(*this);
+    }
+}
+
+void Mower::startNavigation() {
+    if (!isNavigating_) {
+        isNavigating_ = true;
+        navigationManager_.startNavigation(*this);
+        DEBUG_PRINT("Navigation started: ");
+        DEBUG_PRINTLN(navigationManager_.getCurrentNavigatorName());
+    }
+}
+
+void Mower::stopNavigation() {
+    if (isNavigating_) {
+        isNavigating_ = false;
+        navigationManager_.stopNavigation(*this);
+        stopDriveMotors();
+        DEBUG_PRINTLN("Navigation stopped");
+    }
+}
+
+
+LawnMowerNavigator& Mower::getLawnMowerNavigator() {
+    return lawnMowerNavigator_;
+}
+
+BorderNavigator& Mower::getBorderNavigator() {
+    return borderNavigator_;
+}
+
+NavigatorBase* Mower::getCurrentNavigator() {
+    return navigationManager_.getCurrentNavigator();
+}
+
+const char* Mower::getCurrentNavigatorName() const {
+    return navigationManager_.getCurrentNavigatorName();
 }
 
 // Il metodo setStateMachine è stato rimosso in favore del nuovo sistema a stati basato su MowerState
@@ -821,15 +845,8 @@ bool Mower::isErrorResolved() const {
 
 // Controllo motori
 void Mower::updateMotors() {
-    // Gestione navigazione RANDOM e LAWN_MOWER
-    if (navigationMode_ == NavigationMode::RANDOM) {
-        randomNavigator_.update();
-        return;
-    }
-    if (navigationMode_ == NavigationMode::LAWN_MOWER) {
-        lawnNavigator_.update();
-        return;
-    }
+    // Aggiorna navigazione attraverso il NavigationManager
+    navigationManager_.update(*this);
 
     // Aggiorna i motori in base alle velocità impostate
     if (emergencyStopActive_) {
@@ -844,7 +861,7 @@ void Mower::updateMotors() {
         // Aggiorna i motori di trazione
         setLeftMotorSpeed(leftMotorSpeed_);
         setRightMotorSpeed(rightMotorSpeed_);
-        
+
         // Aggiorna lo stato dei motori
         leftMotor.update();
         rightMotor.update();
@@ -891,77 +908,82 @@ void Mower::checkSafety() {
     }
 }
 
-// Navigazione
-void Mower::startRandomMovement() {
-    setNavigationMode(NavigationMode::RANDOM);
-    // Altre operazioni necessarie per avviare il movimento casuale
-}
-
-void Mower::stopRandomMovement() {
-    if (navigationMode_ == NavigationMode::RANDOM) {
-        stopDriveMotors();
-    }
-}
-
 void Mower::followPerimeter() {
     setNavigationMode(NavigationMode::BORDER);
-    // Altre operazioni necessarie per seguire il perimetro
+    isNavigating_ = true;
+    navigationManager_.startNavigation(*this);
 }
 
-// Metodi di debug
-void Mower::printDebugInfo() const {
-    Serial.println("=== Mower Debug Info ===");
-    Serial.print("Battery: ");
-    Serial.print(getBatteryPercentage());
-    Serial.println("%");
-    
-    Serial.print("Left Motor: ");
-    Serial.print(leftMotorSpeed_);
-    Serial.print(", Right Motor: ");
-    Serial.println(rightMotorSpeed_);
-    
-    Serial.print("Blade Speed: ");
-    Serial.println(bladeSpeed_);
-    
-    Serial.print("Lifted: ");
-    Serial.println(lifted_ ? "YES" : "NO");
-    
-    Serial.print("Docked: ");
-    Serial.println(docked_ ? "YES" : "NO");
-    
-    Serial.print("Last Error: ");
-    Serial.println(lastError_);
-    
-    Serial.println("=======================");
+// Save the current GPS position as home position using PositionManager
+bool Mower::saveHomePosition() {
+    if (positionManager_) {
+        bool success = positionManager_->saveHomePosition();
+        if (success) {
+            DEBUG_PRINTLN(F("Home position saved via PositionManager"));
+        } else {
+            DEBUG_PRINTLN(F("Failed to save home position via PositionManager"));
+        }
+        return success;
+    }
+    DEBUG_PRINTLN(F("PositionManager not available"));
+    return false;
+}
+
+float Mower::getDistanceToHome() const {
+    if (positionManager_) {
+        return positionManager_->getDistanceToHome();
+    }
+    return -1.0f;
+}
+
+float Mower::getBearingToHome() const {
+    if (positionManager_) {
+        return positionManager_->getBearingToHome();
+    }
+    return -1.0f;
 }
 
 // Il display LCD è gestito dalla classe LCDMenu
 
 // Implementazione del metodo per il buzzer
 void Mower::playBuzzerTone(unsigned int frequency, unsigned long duration) {
-    #ifdef BUZZER_ENABLED
-    buzzer.playTone(frequency, duration);
-    #endif
+    // Play a simple tone using Arduino tone API; non-blocking on many boards
+    tone(BUZZER_PIN, frequency, duration);
+}
+
+
+// ===== Implementazione metodi di accesso ai navigatori =====
+RandomNavigator& Mower::getRandomNavigator() {
+    return randomNavigator_;
+}
+
+LawnMowerNavigator& Mower::getLawnMowerNavigator() {
+    return lawnMowerNavigator_;
+}
+
+BorderNavigator& Mower::getBorderNavigator() {
+    return borderNavigator_;
+}
+
+NavigatorBase* Mower::getCurrentNavigator() {
+    return navigationManager_.getCurrentNavigator();
+}
+
+const char* Mower::getCurrentNavigatorName() const {
+    return navigationManager_.getCurrentNavigatorName();
 }
 
 // Imposta la modalità di navigazione
+
 void Mower::setNavigationMode(NavigationMode mode) {
     if (navigationMode_ == mode) {
         return; // già impostata
     }
 
-    switch (mode) {
-        case NavigationMode::RANDOM:
-            randomNavigator_.begin();
-            break;
-        case NavigationMode::LAWN_MOWER:
-            lawnNavigator_.begin();
-            break;
-        default:
-            break;
-    }
-
+    // Usa il NavigationManager per gestire il cambio di modalità
+    navigationManager_.setNavigationMode(mode);
     navigationMode_ = mode;
+    
     #ifdef DEBUG
     DEBUG_PRINT(F("Navigation mode set to: "));
     DEBUG_PRINTLN(navigationModeToString(mode));

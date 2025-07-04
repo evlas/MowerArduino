@@ -8,6 +8,7 @@
 #include "UndockingState.h"
 #include "LiftedState.h"
 #include "../functions/MowerTypes.h"
+#include "../functions/PositionManager.h"
 
 // Tempo massimo di ricarica prima di considerarlo un errore (2 ore)
 const unsigned long MAX_CHARGING_TIME_MS = 2 * 60 * 60 * 1000UL;
@@ -21,9 +22,36 @@ void ChargingState::enter(Mower& mower) {
     DEBUG_PRINTLN(F("%"));
 #endif
     
+    // Resetta il contatore del tempo di lavoro giornaliero
+    mower.resetWorkTime();
+    
     // Inizializza le variabili di stato
     lastBatteryCheck_ = millis();
     isFullyCharged_ = mower.isBatteryFull();
+    
+    // Stop all motors
+    mower.stopMotors();
+    
+    // Save the current position as home using PositionManager
+    PositionManager* pm = mower.getPositionManager();
+    if (pm) {
+        bool saveSuccess = false;
+        
+        // Prova a salvare la posizione home con i dati GPS
+        if (pm->isGPSEnabled() && pm->hasGPSFix()) {
+            saveSuccess = pm->saveHomePosition();
+            
+            if (saveSuccess) {
+                DEBUG_PRINTLN(F("Home position saved successfully using PositionManager"));
+            }
+        }
+        
+        if (!saveSuccess) {
+            DEBUG_PRINTLN(F("Cannot save home position: No GPS fix or poor accuracy"));
+        }
+    } else {
+        DEBUG_PRINTLN(F("PositionManager not available"));
+    }
     
     // Attiva la ricarica
     if (!mower.enableCharging(true)) {
@@ -33,11 +61,6 @@ void ChargingState::enter(Mower& mower) {
         mower.handleEvent(Event::ERROR_DETECTED);
         return;
     }
-    
-    // Ferma tutti i motori
-    mower.stopMotors();
-    
-    // Display updates are now handled by the LCDMenu class
     
     // Segnale acustico di inizio ricarica
     mower.playBuzzerTone(1000, 200);  // Frequenza 1000Hz per 200ms
@@ -133,10 +156,10 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
             if (mower.isBatteryCharged()) {
                 if (mower.isDocked()) {
                     // Se siamo agganciati, usciamo dalla stazione di ricarica
-                    mower.setState(mower.getUndockingState());
+                    mower.setState(Mower::State::UNDOCKING);
                 } else {
                     // Altrimenti torniamo direttamente a tagliare
-                    mower.setState(mower.getMowingState());
+                    mower.setState(Mower::State::MOWING);
                 }
             }
             break;
@@ -154,7 +177,7 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
             if (mower.isBatteryCharged()) {
                 mower.setState(mower.getMowingState());
             } else {
-                mower.setState(mower.getIdleState());
+                mower.setState(Mower::State::IDLE);
             }
             break;
             
@@ -174,16 +197,16 @@ void ChargingState::handleEvent(Mower& mower, Event event) {
             break;
             
         case Event::EMERGENCY_STOP:
-            mower.setState(mower.getEmergencyStopState());
+            mower.setState(Mower::State::EMERGENCY_STOP);
             break;
             
         case Event::ERROR_DETECTED:
-            mower.setState(mower.getEmergencyStopState());
+            mower.setState(Mower::State::EMERGENCY_STOP);
             break;
             
         case Event::LIFT_DETECTED:
             // Se il tosaerba viene sollevato durante la ricarica
-            mower.setState(mower.getLiftedState());
+            mower.setState(Mower::State::LIFTED);
             break;
             
         // Ignora altri eventi durante la ricarica

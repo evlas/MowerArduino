@@ -239,7 +239,7 @@ def generate_markdown(classes: List[Dict], output_dir: str) -> None:
 
 def main():
     # Configuration
-    src_dir = 'src'
+    src_dir = 'MowerArduino/src'
     output_dir = 'docs/api'
     
     # Create documentation directory

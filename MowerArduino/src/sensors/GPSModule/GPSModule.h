@@ -101,8 +101,23 @@ public:
     // Restituisce true se c'è un fix valido
     bool hasFix() const { return currentData.fix; }
     
-    // --- Metodi di posizione ---
-    double getLatitude() const { return currentData.latitude; }     // gradi decimali
+    /**
+     * @brief Check if the GPS has a valid fix
+     * @return true if GPS has a valid fix, false otherwise
+     */
+    bool isValid() const { 
+        updateData();
+        return currentData.fix; 
+    }
+    
+    /**
+     * @brief Get the current latitude
+     * @return Latitude in degrees, or 0 if no valid fix
+     */
+    double getLatitude() const { 
+        updateData();
+        return currentData.latitude; 
+    } // gradi decimali
     double getLongitude() const { return currentData.longitude; }   // gradi decimali
     
     // --- Metodi di velocità ---
@@ -116,9 +131,23 @@ public:
     double getAltitudeMeters() const { return currentData.altitude_m; }     // metri
     double getAltitudeKilometers() const { return currentData.altitude_km; } // chilometri
     
-    // --- Metodi di stato ---
-    uint8_t getSatellites() const { return currentData.satellites; } // numero di satelliti
-    float getHDOP() const { return currentData.hdop; }               // precisione orizzontale
+    /**
+     * @brief Get the current HDOP (Horizontal Dilution of Precision)
+     * @return HDOP value (lower is better), or 99.9 if no valid fix
+     */
+    float getHDOP() const {
+        updateData();
+        return currentData.fix ? currentData.hdop : 99.9f;
+    }
+    
+    /**
+     * @brief Get the number of visible satellites
+     * @return Number of visible satellites, or 0 if no valid fix
+     */
+    uint8_t getSatellites() const {
+        updateData();
+        return currentData.fix ? currentData.satellites : 0;
+    }           // precisione orizzontale
     
     // --- Metodi di data/ora ---
     void getDateTime(uint16_t &year, uint8_t &month, uint8_t &day, 

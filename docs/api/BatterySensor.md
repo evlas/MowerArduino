@@ -6,19 +6,19 @@
 
 ### Quick Reference
 
-- [public:
-    
-    
-    
-    bool begin()](#begin)
+- [bool begin()](#begin)
 - [float getBatteryPercentage()](#getbatterypercentage)
+- [BatteryState getBatteryState()](#getbatterystate)
 - [float getCurrent()](#getcurrent)
 - [float getPower()](#getpower)
 - [float getVoltage()](#getvoltage)
-- [bool isBatteryFull(float threshold = 4.2f)](#isbatteryfull)
+- [bool isBatteryFull()](#isbatteryfull)
 - [bool isCharging()](#ischarging)
 - [bool isConnected()](#isconnected)
+- [bool isCritical()](#iscritical)
 - [bool isDischarging()](#isdischarging)
+- [bool isFullyCharged()](#isfullycharged)
+- [return isFullyCharged()](#isfullycharged)
 - [float readCurrent()](#readcurrent)
 - [return readCurrent()](#readcurrent)
 - [float readPower()](#readpower)
@@ -32,20 +32,12 @@
 #### begin
 
 ```cpp
-public:
-    
-    
-    
-    bool begin()
+bool begin()
 ```
 
 **Returns:**
 
-public:
-    
-    
-    
-    bool - 
+bool - 
 
 ---
 
@@ -58,6 +50,18 @@ float getBatteryPercentage()
 **Returns:**
 
 float - 
+
+---
+
+#### getBatteryState
+
+```cpp
+BatteryState getBatteryState()
+```
+
+**Returns:**
+
+BatteryState - 
 
 ---
 
@@ -100,12 +104,8 @@ float -
 #### isBatteryFull
 
 ```cpp
-bool isBatteryFull(float threshold = 4.2f)
+bool isBatteryFull()
 ```
-
-**Parameters:**
-
-- `4.2f` (float threshold =): No description
 
 **Returns:**
 
@@ -137,6 +137,18 @@ bool -
 
 ---
 
+#### isCritical
+
+```cpp
+bool isCritical()
+```
+
+**Returns:**
+
+bool - 
+
+---
+
 #### isDischarging
 
 ```cpp
@@ -146,6 +158,30 @@ bool isDischarging()
 **Returns:**
 
 bool - 
+
+---
+
+#### isFullyCharged
+
+```cpp
+bool isFullyCharged()
+```
+
+**Returns:**
+
+bool - 
+
+---
+
+#### isFullyCharged
+
+```cpp
+return isFullyCharged()
+```
+
+**Returns:**
+
+return - 
 
 ---
 

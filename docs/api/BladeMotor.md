@@ -13,7 +13,7 @@
 - [bool isStartingUp()](#isstartingup)
 - [void resetRunTime()](#resetruntime)
 - [void setDirection(bool forward)](#setdirection)
-- [void setSpeed(uint8_t percent)](#setspeed)
+- [void setSpeed(float percent)](#setspeed)
 - [void start()](#start)
 - [void stop()](#stop)
 - [void toggleDirection()](#toggledirection)
@@ -117,12 +117,12 @@ void -
 #### setSpeed
 
 ```cpp
-void setSpeed(uint8_t percent)
+void setSpeed(float percent)
 ```
 
 **Parameters:**
 
-- `percent` (uint8_t): No description
+- `percent` (float): No description
 
 **Returns:**
 

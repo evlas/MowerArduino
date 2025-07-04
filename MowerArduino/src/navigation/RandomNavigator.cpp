@@ -3,14 +3,25 @@
 #include "../config.h"
 #include "../functions/Mower.h"
 #include "../functions/PositionManager.h"
+#include <Arduino.h>
 
 extern PositionManager positionManager;
 
 RandomNavigator::RandomNavigator(Mower& mower) : mower_(mower), state_(State::DRIVING) {}
 
-void RandomNavigator::begin() {
+void RandomNavigator::init(Mower& mower) {
+    // Initialize any required resources
+    state_ = State::DRIVING;
+}
+
+void RandomNavigator::start(Mower& mower) {
     state_ = State::DRIVING;
     driveForward();
+}
+
+void RandomNavigator::stop(Mower& mower) {
+    mower.stopDriveMotors();
+    state_ = State::DRIVING; // Reset to default state
 }
 
 void RandomNavigator::driveForward() {
@@ -18,12 +29,12 @@ void RandomNavigator::driveForward() {
     mower_.setRightMotorSpeed(DEFAULT_MOTOR_SPEED);
 }
 
-void RandomNavigator::update() {
+void RandomNavigator::update(Mower& mower) {
     switch (state_) {
         case State::DRIVING:
-            if (mower_.isObstacleDetected() || mower_.isBorderDetected()) {
+            if (mower.isObstacleDetected() || mower.isBorderDetected()) {
                 // Stop and reverse 0.5 m
-                mower_.stopDriveMotors();
+                mower.stopDriveMotors();
                 positionManager.moveStraight(-DEFAULT_MOTOR_SPEED, 0.5f); // reverse 0.5 m at default speed
                 // Random turn between 30 and 150 degrees, either direction
                 int deg = random(30, 151);
@@ -40,4 +51,9 @@ void RandomNavigator::update() {
             state_ = State::DRIVING;
             break;
     }
+}
+
+bool RandomNavigator::handleEvent(Mower& mower, Event event) {
+    // Handle events if needed
+    return false; // Event not handled
 }

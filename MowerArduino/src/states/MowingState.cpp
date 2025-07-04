@@ -42,6 +42,12 @@ void MowingState::enter(Mower& mower) {
 void MowingState::update(Mower& mower) {
     unsigned long currentTime = millis();
     
+    // Verifica il tempo di lavoro giornaliero
+    if (mower.updateWorkTime(true)) {
+        mower.handleEvent(Event::DAILY_WORK_LIMIT_REACHED);
+        return;
+    }
+    
     // Verifica lo stato della batteria
     if (mower.isBatteryCritical()) {
         mower.handleEvent(Event::BATTERY_LOW);
@@ -127,13 +133,13 @@ void MowingState::handleBorderAvoidance(Mower& mower) {
     delay(500);
     
     // Esegui una manovra all'indietro e gira
-    mower.setLeftMotorSpeed(-0.5f);  // Indietro al 50% di potenza
-    mower.setRightMotorSpeed(-0.5f);
+    mower.setLeftMotorSpeed(-50.0f);  // Indietro al 50% di potenza
+    mower.setRightMotorSpeed(-50.0f);
     delay(1000);  // Va indietro per 1 secondo
     
     // Gira di 90 gradi a destra
-    mower.setLeftMotorSpeed(0.5f);
-    mower.setRightMotorSpeed(-0.5f);
+    mower.setLeftMotorSpeed(50.0f);
+    mower.setRightMotorSpeed(-50.0f);
     delay(500);  // Regola questo valore in base alla velocità di rotazione
     
     // Riprendi il movimento in avanti
@@ -168,6 +174,15 @@ void MowingState::handleEvent(Mower& mower, Event event) {
             mower.changeState(mower.getLiftedState());
             break;
             
+        case Event::DAILY_WORK_LIMIT_REACHED:
+            // Limite giornaliero di 8 ore raggiunto, torna alla base
+            DEBUG_PRINTLN(F("MOWING: Daily work limit (8h) reached, returning to dock"));
+            mower.playBuzzerTone(2000, 300);
+            delay(100);
+            mower.playBuzzerTone(2000, 300);
+            mower.changeState(mower.getDockingState());
+            break;
+            
         case Event::BORDER_DETECTED:
             // Esegui la manovra di evitamento bordo
             handleBorderAvoidance(mower);
@@ -185,13 +200,13 @@ void MowingState::handleEvent(Mower& mower, Event event) {
             delay(300);
             
             // Esegui una manovra all'indietro
-            mower.setLeftMotorSpeed(-0.4f);
-            mower.setRightMotorSpeed(-0.4f);
+            mower.setLeftMotorSpeed(-40.0f);
+            mower.setRightMotorSpeed(-40.0f);
             delay(800);
             
             // Gira a destra di circa 45 gradi
-            mower.setLeftMotorSpeed(0.5f);
-            mower.setRightMotorSpeed(0.2f);
+            mower.setLeftMotorSpeed(50.0f);
+            mower.setRightMotorSpeed(20.0f);
             delay(600);
             
             // Riprendi il movimento in avanti

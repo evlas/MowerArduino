@@ -4,17 +4,21 @@
 
 #include <Arduino.h>
 #include "../functions/MowerTypes.h"
+#include "NavigatorBase.h"
 
-class Mower;               // Forward declaration
-class RandomNavigator {
+// Forward declarations
+class Mower;
+class RandomNavigator : public NavigatorBase {
 public:
     explicit RandomNavigator(Mower& mower);
 
-    // (Re)start the random navigation state machine
-    void begin();
-
-    // Call every cycle while RANDOM navigation mode is active
-    void update();
+    // NavigatorBase interface implementation
+    void init(Mower& mower) override;
+    void update(Mower& mower) override;
+    bool handleEvent(Mower& mower, Event event) override;
+    const char* getName() const override { return "RANDOM"; }
+    void start(Mower& mower) override;
+    void stop(Mower& mower) override;
 
 private:
     enum class State { DRIVING, REVERSING, TURNING };

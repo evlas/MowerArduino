@@ -176,8 +176,9 @@ void WiFiRemote::processPacket(const uint8_t* data, uint16_t length) {
         switch (static_cast<CommandType>(cmd->command)) {
             case CommandType::MANUAL_CONTROL: {
                 setRemoteControlEnabled(true);
-                float speed = map(cmd->speed, -100, 100, -255, 255) / 255.0f;  // Converti da -100..100 a -1.0..1.0
-                float turn = map(cmd->turn, -100, 100, -255, 255) / 255.0f;    // Converti da -100..100 a -1.0..1.0
+                // Converti direttamente da -100..100 a -100.0..100.0 (nessuna conversione necessaria)
+                float speed = static_cast<float>(cmd->speed);
+                float turn = static_cast<float>(cmd->turn);
                 
                 // Calcola le velocità per i due motori
                 float leftSpeed = speed + turn;

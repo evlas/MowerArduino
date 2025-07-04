@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MowerArduino - State Transitions</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .diagram-container {
+            margin: 30px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            overflow: auto;
+        }
+        .mermaid {
+            min-width: 800px;
+            min-height: 600px;
+        }
+        .legend {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .state-details {
+            margin: 20px 0;
+        }
+        .state {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #3498db;
+            background-color: #f0f7fb;
+        }
+        .state h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MowerArduino - Detailed State Transitions</h1>
+        
+        <div class="legend">
+            <h2>State Transition Diagram</h2>
+            <p>This diagram shows all possible state transitions in the MowerArduino system. Each state is represented by a box, and the arrows show the possible transitions between states along with the events that trigger them.</p>
+        </div>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> Idle
+                    
+                    state Idle {
+                        [*] --> Ready
+                        Ready --> [*]
+                    }
+                    
+                    Idle --> Mowing: START_MOWING
+                    
+                    state Mowing {
+                        [*] --> Starting
+                        Starting --> Moving
+                        Moving --> HandlingObstacle: OBSTACLE_DETECTED
+                        Moving --> HandlingBorder: BORDER_DETECTED
+                        HandlingObstacle --> Moving: OBSTACLE_CLEARED
+                        HandlingBorder --> Moving: BORDER_CLEARED
+                        Moving --> [*]
+                    }
+                    
+                    Mowing --> Docking: BATTERY_LOW
+                    Mowing --> EmergencyStop: EMERGENCY_STOP
+                    Mowing --> Paused: PAUSE
+                    Mowing --> Idle: STOP_MOWING
+                    
+                    state Docking {
+                        [*] --> InitialApproach
+                        InitialApproach --> Alignment: DOCK_DETECTED
+                        Alignment --> FinalApproach: ALIGNED
+                        FinalApproach --> Docked: DOCKED
+                    }
+                    
+                    Docking --> Charging: DOCK_DETECTED
+                    Docking --> Mowing: UNDOCK
+                    
+                    state Charging {
+                        [*] --> ChargingInProgress
+                        ChargingInProgress --> ChargingComplete: BATTERY_FULL
+                        ChargingComplete --> [*]
+                    }
+                    
+                    Charging --> Idle: BATTERY_CHARGED
+                    Charging --> Mowing: START_MOWING
+                    
+                    state EmergencyStop {
+                        [*] --> Stopped
+                        Stopped --> [*]
+                    }
+                    
+                    EmergencyStop --> Idle: RESET
+                    
+                    state Paused {
+                        [*] --> PausedActive
+                        PausedActive --> [*]
+                    }
+                    
+                    Paused --> Mowing: RESUME
+                    Paused --> Idle: STOP_MOWING
+                    
+                    state ErrorState {
+                        [*] --> ErrorActive
+                        ErrorActive --> [*]
+                    }
+                    
+                    ErrorState --> Idle: ERROR_CLEARED
+                    
+                    state LiftedState {
+                        [*] --> LiftedActive
+                        LiftedActive --> [*]
+                    }
+                    
+                    LiftedState --> Idle: PLACED_ON_GROUND
+                    
+                    state RainDelayState {
+                        [*] --> Waiting
+                        Waiting --> [*]
+                    }
+                    
+                    RainDelayState --> Idle: RAIN_STOPPED
+                    
+                    note right of Mowing
+                        Mowing state includes obstacle
+                        and border handling logic
+                    end note
+                    
+                    note right of Docking
+                        Docking state manages the
+                        entire docking sequence
+                    end note
+            </div>
+        </div>
+
+        <div class="state-details">
+            <h2>State Descriptions</h2>
+            
+            <div class="state">
+                <h3>Idle</h3>
+                <p>The mower is powered on but not performing any tasks. It's waiting for user input to start mowing or other operations.</p>
+                <p><strong>Key Methods:</strong> <code>enter()</code>, <code>update()</code>, <code>handleEvent()</code></p>
+            </div>
+            
+            <div class="state">
+                <h3>Mowing</h3>
+                <p>The mower is actively cutting grass. It handles obstacle detection, border following, and battery monitoring.</p>
+                <p><strong>Sub-states:</strong> Starting, Moving, HandlingObstacle, HandlingBorder</p>
+                <p><strong>Key Methods:</strong> <code>startBlades()</code>, <code>updateMotors()</code>, <code>handleObstacle()</code>, <code>handleBorder()</code></p>
+            </div>
+            
+            <div class="state">
+                <h3>Docking</h3>
+                <p>The mower is returning to its charging station. It manages the complex docking sequence.</p>
+                <p><strong>Sub-states:</strong> InitialApproach, Alignment, FinalApproach, Docked</p>
+                <p><strong>Key Methods:</strong> <code>startDocking()</code>, <code>alignWithDock()</code>, <code>approachDock()</code></p>
+            </div>
+            
+            <div class="state">
+                <h3>Charging</h3>
+                <p>The mower is connected to the charging station and its battery is being charged.</p>
+                <p><strong>Sub-states:</strong> ChargingInProgress, ChargingComplete</p>
+                <p><strong>Key Methods:</strong> <code>enableCharging()</code>, <code>checkBattery()</code></p>
+            </div>
+            
+            <div class="state">
+                <h3>EmergencyStop</h3>
+                <p>Triggered when an emergency stop condition is detected. All motors are immediately stopped.</p>
+                <p><strong>Key Methods:</strong> <code>emergencyStop()</code>, <code>resetEmergencyStop()</code></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            state: {
+                defaultStateAngle: 0,
+                defaultLabelStyle: {
+                    fontSize: '12px'
+                },
+                nodeSpacing: 100,
+                rankSpacing: 100,
+                useMaxWidth: true
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>

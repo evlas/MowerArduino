@@ -23,7 +23,7 @@ void UndockingState::enter(Mower& mower) {
     // Assicurati che le lame siano spente
     mower.stopBlades();
     
-    // Inizia la retromarcia per uscire dal dock
+    // Inizia la retromarcia per uscire dal dock al 50% della velocità predefinita
     mower.setLeftMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
     mower.setRightMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
     
@@ -59,7 +59,7 @@ void UndockingState::update(Mower& mower) {
         // Piccola pausa per stabilizzare
         delay(200);
         
-        // Inizia la rotazione di 90° a destra per allontanarsi dal dock
+        // Inizia la rotazione di 90° a destra per allontanarsi dal dock al 60% della velocità predefinita
         mower.setLeftMotorSpeed(DEFAULT_MOTOR_SPEED * 0.6f);
         mower.setRightMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.6f);
         
@@ -163,7 +163,7 @@ void UndockingState::handleEvent(Mower& mower, Event event) {
                     // Se siamo ancora agganciati, torniamo allo stato di charging
                     mower.setState(mower.getChargingState());
                 } else {
-                    // Altrimenti riprendiamo l'undocking
+                    // Altrimenti riprendiamo l'undocking al 50% della velocità predefinita
                     mower.setLeftMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
                     mower.setRightMotorSpeed(-DEFAULT_MOTOR_SPEED * 0.5f);
                 }

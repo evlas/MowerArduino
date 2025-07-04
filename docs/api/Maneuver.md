@@ -6,9 +6,9 @@
 
 ### Quick Reference
 
-- [void backward(int duration, float speed)](#backward)
+- [void backward(int duration, float speedPercent)](#backward)
 - [void begin()](#begin)
-- [void forward(int duration, float speed)](#forward)
+- [void forward(int duration, float speedPercent)](#forward)
 - [float getAngularVelocity()](#getangularvelocity)
 - [int getLeftSpeed()](#getleftspeed)
 - [float getLinearVelocity()](#getlinearvelocity)
@@ -18,24 +18,24 @@
 - [bool isMoving()](#ismoving)
 - [bool isTurning()](#isturning)
 - [void moveBy(float deltaX, float deltaY, float speed)](#moveby)
-- [void moveStraight(int distance, float speed = 50.0f)](#movestraight)
+- [void moveStraight(int distance, float speedPercent = 50.0f)](#movestraight)
 - [void moveTo(float targetX, float targetY, float speed)](#moveto)
 - [float normalizeAngle(float angle)](#normalizeangle)
 - [void resumeAfterObstacle()](#resumeafterobstacle)
-- [void rotate(int degrees, float speed = 50.0f)](#rotate)
-- [void rotateLeft(float speed)](#rotateleft)
-- [void rotateRight(float speed)](#rotateright)
+- [void rotate(int degrees, float speedPercent = 50.0f)](#rotate)
+- [void rotateLeft(float speedPercent)](#rotateleft)
+- [void rotateRight(float speedPercent)](#rotateright)
 - [void setDirection(bool leftForward, bool rightForward)](#setdirection)
 - [void setObstacleDetected(bool detected)](#setobstacledetected)
-- [void setSpeed(float speed, bool isTrajectoryCorrection = false)](#setspeed)
-- [void setSpeed(float leftSpeed, float rightSpeed, bool isTrajectoryCorrection = true)](#setspeed)
-- [void spiral(float maxRadius = 5.0f, float speed = 0.5f)](#spiral)
+- [void setSpeed(float speedPercent, bool isTrajectoryCorrection = false)](#setspeed)
+- [void setSpeed(float leftSpeedPercent, float rightSpeedPercent, bool isTrajectoryCorrection = true)](#setspeed)
+- [void spiral(float maxRadius = 5.0f, float speedPercent = 50.0f)](#spiral)
 - [void startMowing(float bladeWidth, float speed = 50.0f)](#startmowing)
 - [void startSpiral(float speed = 50.0f)](#startspiral)
 - [void stop()](#stop)
 - [void stopZigzag()](#stopzigzag)
-- [void turnLeft(int angle, float speed)](#turnleft)
-- [void turnRight(int angle, float speed)](#turnright)
+- [void turnLeft(int angle, float speedPercent)](#turnleft)
+- [void turnRight(int angle, float speedPercent)](#turnright)
 - [void updateAcceleration()](#updateacceleration)
 - [private:
     
@@ -43,20 +43,20 @@
 - [void updateMovement()](#updatemovement)
 - [void updateObstacleAvoidance()](#updateobstacleavoidance)
 - [void updateZigzag()](#updatezigzag)
-- [void zigzag(int distance, int width, float speed = 50.0f)](#zigzag)
+- [void zigzag(int distance, int width, float speedPercent = 50.0f)](#zigzag)
 
 ### Method Details
 
 #### backward
 
 ```cpp
-void backward(int duration, float speed)
+void backward(int duration, float speedPercent)
 ```
 
 **Parameters:**
 
 - `duration` (int): No description
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -79,13 +79,13 @@ void -
 #### forward
 
 ```cpp
-void forward(int duration, float speed)
+void forward(int duration, float speedPercent)
 ```
 
 **Parameters:**
 
 - `duration` (int): No description
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -210,13 +210,13 @@ void -
 #### moveStraight
 
 ```cpp
-void moveStraight(int distance, float speed = 50.0f)
+void moveStraight(int distance, float speedPercent = 50.0f)
 ```
 
 **Parameters:**
 
 - `distance` (int): No description
-- `50.0f` (float speed =): No description
+- `50.0f` (float speedPercent =): No description
 
 **Returns:**
 
@@ -273,13 +273,13 @@ void -
 #### rotate
 
 ```cpp
-void rotate(int degrees, float speed = 50.0f)
+void rotate(int degrees, float speedPercent = 50.0f)
 ```
 
 **Parameters:**
 
 - `degrees` (int): No description
-- `50.0f` (float speed =): No description
+- `50.0f` (float speedPercent =): No description
 
 **Returns:**
 
@@ -290,12 +290,12 @@ void -
 #### rotateLeft
 
 ```cpp
-void rotateLeft(float speed)
+void rotateLeft(float speedPercent)
 ```
 
 **Parameters:**
 
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -306,12 +306,12 @@ void -
 #### rotateRight
 
 ```cpp
-void rotateRight(float speed)
+void rotateRight(float speedPercent)
 ```
 
 **Parameters:**
 
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -355,12 +355,12 @@ void -
 #### setSpeed
 
 ```cpp
-void setSpeed(float speed, bool isTrajectoryCorrection = false)
+void setSpeed(float speedPercent, bool isTrajectoryCorrection = false)
 ```
 
 **Parameters:**
 
-- `speed` (float): No description
+- `speedPercent` (float): No description
 - `false` (bool isTrajectoryCorrection =): No description
 
 **Returns:**
@@ -372,13 +372,13 @@ void -
 #### setSpeed
 
 ```cpp
-void setSpeed(float leftSpeed, float rightSpeed, bool isTrajectoryCorrection = true)
+void setSpeed(float leftSpeedPercent, float rightSpeedPercent, bool isTrajectoryCorrection = true)
 ```
 
 **Parameters:**
 
-- `leftSpeed` (float): No description
-- `rightSpeed` (float): No description
+- `leftSpeedPercent` (float): No description
+- `rightSpeedPercent` (float): No description
 - `true` (bool isTrajectoryCorrection =): No description
 
 **Returns:**
@@ -390,13 +390,13 @@ void -
 #### spiral
 
 ```cpp
-void spiral(float maxRadius = 5.0f, float speed = 0.5f)
+void spiral(float maxRadius = 5.0f, float speedPercent = 50.0f)
 ```
 
 **Parameters:**
 
 - `5.0f` (float maxRadius =): No description
-- `0.5f` (float speed =): No description
+- `50.0f` (float speedPercent =): No description
 
 **Returns:**
 
@@ -464,13 +464,13 @@ void -
 #### turnLeft
 
 ```cpp
-void turnLeft(int angle, float speed)
+void turnLeft(int angle, float speedPercent)
 ```
 
 **Parameters:**
 
 - `angle` (int): No description
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -481,13 +481,13 @@ void -
 #### turnRight
 
 ```cpp
-void turnRight(int angle, float speed)
+void turnRight(int angle, float speedPercent)
 ```
 
 **Parameters:**
 
 - `angle` (int): No description
-- `speed` (float): No description
+- `speedPercent` (float): No description
 
 **Returns:**
 
@@ -568,14 +568,14 @@ void -
 #### zigzag
 
 ```cpp
-void zigzag(int distance, int width, float speed = 50.0f)
+void zigzag(int distance, int width, float speedPercent = 50.0f)
 ```
 
 **Parameters:**
 
 - `distance` (int): No description
 - `width` (int): No description
-- `50.0f` (float speed =): No description
+- `50.0f` (float speedPercent =): No description
 
 **Returns:**
 
